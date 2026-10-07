@@ -3,8 +3,8 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>🎮 Hứng Sản Phẩm Arcade • AI Hand Tracking Web Game</title>
-  <meta name="description" content="Trò chơi hứng sản phẩm bằng AI bàn tay MediaPipe trực tiếp trên trình duyệt web. Phong cách Pop Arcade rực rỡ, âm thanh sống động, săn voucher và thi đấu điểm số cùng bạn bè!">
+  <title>🎮 Hứng Sản Phẩm Arcade • AI Nose Tracking Web Game</title>
+  <meta name="description" content="Trò chơi hứng sản phẩm bằng AI nhận diện mũi & khuôn mặt trực tiếp trên trình duyệt web. Phong cách Pop Arcade rực rỡ, âm thanh sống động, săn voucher và thi đấu điểm số cùng bạn bè!">
   
   <!-- Google Fonts: Outfit & Orbitron -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -77,14 +77,14 @@
         <!-- Start Overlay / Welcome Screen (when idle) -->
         <div class="stage-overlay" id="welcome-overlay">
           <div class="welcome-box">
-            <div class="welcome-logo-badge">🤖 AI GESTURE GAMING</div>
-            <h2 class="welcome-heading">HỨNG SẢN PHẨM BẰNG BÀN TAY</h2>
-            <p class="welcome-desc">Đưa bàn tay trước camera hoặc dùng chuột/ngón tay để hứng các phần quà đang rơi. Nhận điểm thưởng combo, lập kỷ lục và mở khóa Voucher đặc biệt!</p>
+            <div class="welcome-logo-badge">👃 AI NOSE TRACKING</div>
+            <h2 class="welcome-heading">HỨNG SẢN PHẨM BẰNG MŨI</h2>
+            <p class="welcome-desc">Di chuyển đầu và hướng chóp mũi trước camera hoặc dùng chuột/ngón tay để hứng các phần quà đang rơi. Nhận điểm thưởng combo, lập kỷ lục và mở khóa Voucher đặc biệt!</p>
 
             <div class="welcome-actions">
               <button class="cta-start-btn" id="welcome-start-camera-btn">
                 <span class="btn-icon">📷</span>
-                <span class="btn-text">BẬT CAMERA & CHƠI BẰNG BÀN TAY</span>
+                <span class="btn-text">BẬT CAMERA & CHƠI BẰNG MŨI</span>
               </button>
               <button class="cta-mouse-btn" id="welcome-start-mouse-btn">
                 <span class="btn-icon">🖱️</span>
@@ -101,7 +101,7 @@
         <!-- Camera Loading Spinner Overlay -->
         <div class="stage-overlay camera-loading-overlay" id="loading-overlay" style="display: none;">
           <div class="loader-spinner"></div>
-          <div class="loader-text" id="loader-status-text">Đang tải mô hình AI nhận diện bàn tay MediaPipe...</div>
+          <div class="loader-text" id="loader-status-text">Đang tải mô hình AI nhận diện khuôn mặt & mũi MediaPipe...</div>
           <div class="loader-sub">Vui lòng chấp nhận quyền truy cập Camera nếu trình duyệt yêu cầu</div>
         </div>
 
@@ -139,14 +139,14 @@
         <div class="control-group">
           <label for="mode-select" class="ctrl-label">Chế độ:</label>
           <select id="mode-select" class="ctrl-select">
-            <option value="camera">📷 Webcam / Bàn tay thật</option>
+            <option value="camera">📷 Webcam / Di chuyển mũi</option>
             <option value="mouse">🖱️ Chuột / Cảm ứng</option>
           </select>
         </div>
 
-        <label class="ctrl-chk" title="Hiển thị khung và xương bàn tay AI nhận diện">
+        <label class="ctrl-chk" title="Hiển thị tâm ngắm và đĩa hứng tại chóp mũi">
           <input type="checkbox" id="show-shield-chk" checked>
-          <span>🛡️ Khiên bàn tay</span>
+          <span>🎯 Tâm ngắm mũi</span>
         </label>
       </div>
 

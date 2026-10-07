@@ -8,7 +8,7 @@
 
 import {
   FilesetResolver,
-  HandLandmarker
+  FaceLandmarker
 } from "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14";
 
 // --- GAME CONSTANTS & DEFAULT PRODUCTS ---
@@ -362,12 +362,11 @@ class WebArcadeApp {
     this.productImages = [];
     this.autoRemoveBg = true;
 
-    // MediaPipe Hand Landmarker
-    this.handLandmarker = null;
+    // MediaPipe Face & Nose Landmarker
+    this.faceLandmarker = null;
     this.isModelLoading = false;
     this.cameraStream = null;
-    this.detectedHands = [];
-    this.handLandmarksList = [];
+    this.faceLandmarksList = [];
 
     // Loop timing
     this.lastTime = performance.now();
@@ -484,7 +483,7 @@ class WebArcadeApp {
         this.setStatus('🎮 Chế độ Chuột / Cảm ứng: Di chuyển chuột hoặc ngón tay để hứng sản phẩm!');
       } else {
         this.touchHint.style.display = 'none';
-        this.setStatus('📷 Chế độ Webcam: Bàn tay thật đang hoạt động.');
+        this.setStatus('📷 Chế độ Webcam: AI nhận diện chóp mũi đang hoạt động. Di chuyển mũi để hứng quà!');
       }
     });
 
@@ -645,20 +644,24 @@ class WebArcadeApp {
   }
 
   // Load Default Images or Brand Configured Images
+  // Load Products & Automatically Remove Background Before Web Display
   async loadDefaultProducts() {
     this.productImages = [];
     const sourceUrls = (this.currentBrand && Array.isArray(this.currentBrand.productImages) && this.currentBrand.productImages.length > 0)
       ? this.currentBrand.productImages
       : DEFAULT_PRODUCT_URLS;
 
-    const promises = sourceUrls.map((url) => {
-      return new Promise((resolve) => {
-        const img = new Image();
-        img.crossOrigin = 'anonymous';
-        img.onload = () => resolve({ img, url });
-        img.onerror = () => resolve(null);
-        img.src = url;
-      });
+    const promises = sourceUrls.map(async (url) => {
+      try {
+        const rawImg = await this.loadImageElement(url);
+        // Automatically remove background for assets products before web display
+        const processedUrl = this.removeImageBackground(rawImg);
+        const processedImg = await this.loadImageElement(processedUrl);
+        return { img: processedImg, url: processedUrl };
+      } catch (err) {
+        console.warn("Lỗi tải/xử lý ảnh sản phẩm:", url, err);
+        return null;
+      }
     });
 
     const results = await Promise.all(promises);
@@ -688,77 +691,146 @@ class WebArcadeApp {
     }
   }
 
-  // Handle Custom Uploaded Photos + Client-Side Canvas Background Removal
-  async handleCustomImagesUpload(event) {
-    const files = Array.from(event.target.files);
-    if (!files.length) return;
-
-    this.setStatus(`⏳ Đang xử lý ${files.length} ảnh sản phẩm...`);
-
-    for (const file of files) {
-      const dataUrl = await this.readFileAsDataURL(file);
-      const rawImg = await this.loadImageElement(dataUrl);
-
-      let processedUrl = dataUrl;
-      if (this.autoRemoveBg) {
-        processedUrl = this.removeImageBackground(rawImg);
-      }
-
-      const finalImg = await this.loadImageElement(processedUrl);
-      this.productImages.push({ img: finalImg, url: processedUrl });
-    }
-
-    this.renderThumbnails();
-    this.setStatus(`✅ Đã thêm ${files.length} ảnh sản phẩm vào kho ngẫu nhiên!`);
-    event.target.value = '';
-  }
-
-  readFileAsDataURL(file) {
-    return new Promise((resolve) => {
-      const reader = new FileReader();
-      reader.onload = (e) => resolve(e.target.result);
-      reader.readAsDataURL(file);
-    });
-  }
-
   loadImageElement(src) {
-    return new Promise((resolve) => {
+    return new Promise((resolve, reject) => {
       const img = new Image();
+      img.crossOrigin = 'anonymous';
       img.onload = () => resolve(img);
+      img.onerror = (e) => reject(e);
       img.src = src;
     });
   }
 
-  // Fast Client-Side Canvas Background Remover (Studio White / Corner Color Removal)
+  // Smart Client-Side Background Remover:
+  // Tự động xóa phông nền trắng/đơn sắc bao quanh sản phẩm trước khi đưa vào web
   removeImageBackground(img) {
+    const w = img.naturalWidth || img.width;
+    const h = img.naturalHeight || img.height;
+    if (!w || !h) return img.src;
+
     const offCanvas = document.createElement('canvas');
-    offCanvas.width = img.naturalWidth || img.width;
-    offCanvas.height = img.naturalHeight || img.height;
-    const offCtx = offCanvas.getContext('2d');
+    offCanvas.width = w;
+    offCanvas.height = h;
+    const offCtx = offCanvas.getContext('2d', { willReadFrequently: true });
     offCtx.drawImage(img, 0, 0);
 
-    const imgData = offCtx.getImageData(0, 0, offCanvas.width, offCanvas.height);
+    const imgData = offCtx.getImageData(0, 0, w, h);
     const data = imgData.data;
-    const len = data.length;
 
-    // Sample top-left corner color as baseline
-    const bgR = data[0];
-    const bgG = data[1];
-    const bgB = data[2];
+    // 1. Kiểm tra nếu 4 góc ảnh đã trong suốt sẵn (ảnh PNG không nền) thì giữ nguyên
+    const cornerIndices = [
+      0,
+      (w - 1) * 4,
+      ((h - 1) * w) * 4,
+      ((h - 1) * w + (w - 1)) * 4
+    ];
+    let transparentCorners = 0;
+    for (const ci of cornerIndices) {
+      if (data[ci + 3] < 30) transparentCorners++;
+    }
+    if (transparentCorners >= 3) {
+      return offCanvas.toDataURL('image/png');
+    }
 
-    const threshold = 35;
+    // 2. Lấy mẫu màu viền/góc xung quanh để nhận diện màu nền
+    const samples = [];
+    const samplePoints = [
+      [0, 0], [w - 1, 0], [0, h - 1], [w - 1, h - 1],
+      [Math.floor(w / 2), 0], [0, Math.floor(h / 2)],
+      [w - 1, Math.floor(h / 2)], [Math.floor(w / 2), h - 1]
+    ];
+    for (const [sx, sy] of samplePoints) {
+      const idx = (sy * w + sx) * 4;
+      if (data[idx + 3] > 80) {
+        samples.push([data[idx], data[idx + 1], data[idx + 2]]);
+      }
+    }
 
-    for (let i = 0; i < len; i += 4) {
-      const r = data[i];
-      const g = data[i + 1];
-      const b = data[i + 2];
+    let bgR = 255, bgG = 255, bgB = 255;
+    if (samples.length > 0) {
+      bgR = samples.reduce((acc, s) => acc + s[0], 0) / samples.length;
+      bgG = samples.reduce((acc, s) => acc + s[1], 0) / samples.length;
+      bgB = samples.reduce((acc, s) => acc + s[2], 0) / samples.length;
+    }
 
-      // Check distance to corner background or near pure white
+    const isBgPixel = (idx) => {
+      const r = data[idx];
+      const g = data[idx + 1];
+      const b = data[idx + 2];
+      const a = data[idx + 3];
+
+      if (a < 50) return true;
+      // Trắng hoặc gần trắng studio
+      if (r > 225 && g > 225 && b > 225) return true;
+
+      // Khoảng cách màu tới viền nền
       const dist = Math.sqrt((r - bgR) ** 2 + (g - bgG) ** 2 + (b - bgB) ** 2);
-      const isWhite = r > 230 && g > 230 && b > 230;
+      return dist < 42;
+    };
 
-      if (dist < threshold || isWhite) {
-        data[i + 3] = 0; // Alpha = 0 (Transparent)
+    // 3. Thuật toán Flood Fill (loang từ mép ngoài vào trong)
+    // Đảm bảo không xóa nhầm chữ/họa tiết trắng bên trong sản phẩm
+    const visited = new Uint8Array(w * h);
+    const queue = [];
+
+    for (let x = 0; x < w; x++) {
+      const pTop = x;
+      if (isBgPixel(pTop * 4)) { visited[pTop] = 1; queue.push(pTop); }
+      const pBottom = (h - 1) * w + x;
+      if (isBgPixel(pBottom * 4)) { visited[pBottom] = 1; queue.push(pBottom); }
+    }
+    for (let y = 0; y < h; y++) {
+      const pLeft = y * w;
+      if (!visited[pLeft] && isBgPixel(pLeft * 4)) { visited[pLeft] = 1; queue.push(pLeft); }
+      const pRight = y * w + (w - 1);
+      if (!visited[pRight] && isBgPixel(pRight * 4)) { visited[pRight] = 1; queue.push(pRight); }
+    }
+
+    let head = 0;
+    while (head < queue.length) {
+      const curr = queue[head++];
+      const cx = curr % w;
+      const cy = Math.floor(curr / w);
+
+      // Đặt pixel nền thành trong suốt
+      data[curr * 4 + 3] = 0;
+
+      const neighbors = [
+        cx > 0 ? curr - 1 : -1,
+        cx < w - 1 ? curr + 1 : -1,
+        cy > 0 ? curr - w : -1,
+        cy < h - 1 ? curr + w : -1
+      ];
+
+      for (const n of neighbors) {
+        if (n !== -1 && !visited[n]) {
+          if (isBgPixel(n * 4)) {
+            visited[n] = 1;
+            queue.push(n);
+          }
+        }
+      }
+    }
+
+    // 4. Khử răng cưa viền (soft antialiasing)
+    for (let y = 1; y < h - 1; y++) {
+      for (let x = 1; x < w - 1; x++) {
+        const idx = (y * w + x) * 4;
+        if (data[idx + 3] > 0) {
+          const upA = data[((y - 1) * w + x) * 4 + 3];
+          const downA = data[((y + 1) * w + x) * 4 + 3];
+          const leftA = data[(y * w + (x - 1)) * 4 + 3];
+          const rightA = data[(y * w + (x + 1)) * 4 + 3];
+          if (upA === 0 || downA === 0 || leftA === 0 || rightA === 0) {
+            const r = data[idx];
+            const g = data[idx + 1];
+            const b = data[idx + 2];
+            const dist = Math.sqrt((r - bgR) ** 2 + (g - bgG) ** 2 + (b - bgB) ** 2);
+            if (dist < 55) {
+              data[idx + 3] = Math.max(0, Math.min(255, (dist / 55) * 220));
+            }
+          }
+        }
       }
     }
 
@@ -835,7 +907,7 @@ class WebArcadeApp {
     }
 
     // Camera Mode: Initialize MediaPipe & Webcam
-    if (!this.handLandmarker) {
+    if (!this.faceLandmarker) {
       await this.initMediaPipe();
     } else {
       if (!this.cameraStream) {
@@ -844,28 +916,29 @@ class WebArcadeApp {
     }
 
     this.running = true;
-    this.setStatus('📷 Camera sẵn sàng! Đưa bàn tay vào khung hình để bắt đầu hứng quà!');
+    this.setStatus('📷 Camera sẵn sàng! Di chuyển chóp mũi để đón quà rơi!');
   }
 
-  // MediaPipe Vision HandLandmarker Initializer
+  // MediaPipe Vision FaceLandmarker Initializer (Nhận diện chóp mũi & khuôn mặt)
   async initMediaPipe() {
     this.loadingOverlay.style.display = 'flex';
-    this.loaderStatusText.textContent = 'Đang tải mô hình AI nhận diện bàn tay MediaPipe...';
+    this.loaderStatusText.textContent = 'Đang tải mô hình AI nhận diện khuôn mặt & mũi MediaPipe...';
 
     try {
       const vision = await FilesetResolver.forVisionTasks(
         "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/wasm"
       );
 
-      this.handLandmarker = await HandLandmarker.createFromOptions(vision, {
+      this.faceLandmarker = await FaceLandmarker.createFromOptions(vision, {
         baseOptions: {
-          modelAssetPath: "https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/1/hand_landmarker.task",
+          modelAssetPath: "https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/1/face_landmarker.task",
           delegate: "GPU"
         },
+        outputFaceBlendshapes: false,
         runningMode: "VIDEO",
-        numHands: 2,
-        minHandDetectionConfidence: 0.5,
-        minHandPresenceConfidence: 0.5,
+        numFaces: 2,
+        minFaceDetectionConfidence: 0.5,
+        minFacePresenceConfidence: 0.5,
         minTrackingConfidence: 0.5
       });
 
@@ -873,7 +946,7 @@ class WebArcadeApp {
       await this.startWebcam();
       this.loadingOverlay.style.display = 'none';
     } catch (err) {
-      console.error("MediaPipe Init Error:", err);
+      console.error("MediaPipe Face Init Error:", err);
       this.loadingOverlay.style.display = 'none';
       this.setStatus('⚠️ Không thể bật Camera (hoặc bị chặn). Tự động chuyển sang Chế độ Chuột!');
       this.modeSelect.value = 'mouse';
@@ -1040,8 +1113,8 @@ class WebArcadeApp {
 
   // Main Active Game Frame
   updateAndRenderGame(dt, timestamp) {
-    let hands = [];
-    this.handLandmarksList = [];
+    let catchers = [];
+    this.faceLandmarksList = [];
 
     // Screen Shake
     let shakeDx = 0;
@@ -1063,7 +1136,7 @@ class WebArcadeApp {
       if (this.mousePos) {
         const mx = this.mousePos.x;
         const my = this.mousePos.y;
-        hands.push({ left: mx - 75, top: my - 12, right: mx + 75, bottom: my + 16 });
+        catchers.push({ left: mx - 75, top: my - 12, right: mx + 75, bottom: my + 16 });
       }
     } else {
       // Camera Video Frame Render (Mirrored selfie view with object-fit: cover)
@@ -1088,25 +1161,28 @@ class WebArcadeApp {
         this.ctx.fillStyle = 'rgba(11, 8, 30, 0.28)';
         this.ctx.fillRect(0, 0, W, H);
 
-        // AI Hand Detection
-        if (this.handLandmarker) {
+        // AI Face & Nose Detection
+        if (this.faceLandmarker) {
           try {
-            const detections = this.handLandmarker.detectForVideo(this.video, timestamp);
-            if (detections && detections.landmarks) {
-              for (const landmarks of detections.landmarks) {
-                this.handLandmarksList.push(landmarks);
+            const detections = this.faceLandmarker.detectForVideo(this.video, timestamp);
+            if (detections && detections.faceLandmarks) {
+              for (const landmarks of detections.faceLandmarks) {
+                // Landmark 1: Tip of the nose (Chóp mũi)
+                const nosePt = this.videoToCanvas(landmarks[1]);
 
-                // Palm + finger roots: points [0, 5, 9, 13, 17]
-                const palmPoints = [0, 5, 9, 13, 17].map(i => this.videoToCanvas(landmarks[i]));
+                // Measure face width between cheek points 234 and 454 to scale catcher
+                const leftCheek = this.videoToCanvas(landmarks[234]);
+                const rightCheek = this.videoToCanvas(landmarks[454]);
+                const faceWidth = Math.hypot(rightCheek.x - leftCheek.x, rightCheek.y - leftCheek.y) || 120;
+                const catcherWidth = Math.max(90, Math.min(160, faceWidth * 0.75));
 
-                const xs = palmPoints.map(p => p.x);
-                const ys = palmPoints.map(p => p.y);
-                const left = Math.min(...xs) - 20;
-                const right = Math.max(...xs) + 20;
-                const top = Math.min(...ys) - 14;
-                const bottom = Math.max(...ys) + 14;
+                const left = nosePt.x - catcherWidth / 2;
+                const right = nosePt.x + catcherWidth / 2;
+                const top = nosePt.y - 18;
+                const bottom = nosePt.y + 24;
 
-                hands.push({ left, top, right, bottom });
+                catchers.push({ left, top, right, bottom });
+                this.faceLandmarksList.push({ landmarks, nosePt, catcherWidth, left, top, right, bottom });
               }
             }
           } catch (e) {}
@@ -1114,13 +1190,13 @@ class WebArcadeApp {
       }
     }
 
-    // 2. DRAW HAND SKELETON / SHIELDS
+    // 2. DRAW NOSE CATCHER / SHIELDS
     if (this.showShieldChk.checked) {
       if (this.useMouse && this.mousePos) {
         const mx = this.mousePos.x;
         const my = this.mousePos.y;
 
-        // Arcade Catcher Saucer
+        // Arcade Catcher Saucer (Mouse / Touch Mode)
         this.ctx.save();
         this.ctx.beginPath();
         this.ctx.ellipse(mx, my + 8, 80, 16, 0, 0, Math.PI * 2);
@@ -1146,98 +1222,69 @@ class WebArcadeApp {
         this.ctx.stroke();
 
         this.ctx.fillStyle = '#38BDF8';
-        this.ctx.font = 'bold 10px Outfit';
+        this.ctx.font = 'bold 10px Outfit, sans-serif';
         this.ctx.textAlign = 'center';
         this.ctx.fillText('✨ ĐĨA HỨNG ✨', mx, my - 16);
         this.ctx.restore();
       } else {
-        // Draw MediaPipe Hand Skeletons
-        for (const lms of this.handLandmarksList) {
-          const connections = [
-            [0, 1], [1, 2], [2, 3], [3, 4],        // Thumb
-            [0, 5], [5, 6], [6, 7], [7, 8],        // Index
-            [5, 9], [9, 10], [10, 11], [11, 12],    // Middle
-            [9, 13], [13, 14], [14, 15], [15, 16], // Ring
-            [13, 17], [17, 18], [18, 19], [19, 20],// Pinky
-            [0, 17]                                // Palm Base
-          ];
+        // Draw MediaPipe Nose Catchers on Face
+        for (const item of this.faceLandmarksList) {
+          const { landmarks, nosePt, catcherWidth, left, top, right, bottom } = item;
 
           this.ctx.save();
+
+          // 1. Nose Bridge Wireframe (landmarks [168, 6, 197, 195, 5, 4, 1])
+          const noseContour = [168, 6, 197, 195, 5, 4, 1];
+          this.ctx.beginPath();
+          noseContour.forEach((idx, i) => {
+            const pt = this.videoToCanvas(landmarks[idx]);
+            if (i === 0) this.ctx.moveTo(pt.x, pt.y);
+            else this.ctx.lineTo(pt.x, pt.y);
+          });
+          this.ctx.strokeStyle = 'rgba(6, 182, 212, 0.65)';
+          this.ctx.lineWidth = 2.5;
+          this.ctx.stroke();
+
+          // 2. Glowing Catcher Saucer at nose level
+          this.ctx.beginPath();
+          this.ctx.ellipse(nosePt.x, nosePt.y + 12, catcherWidth / 2, 14, 0, 0, Math.PI * 2);
+          this.ctx.fillStyle = 'rgba(79, 70, 229, 0.45)';
+          this.ctx.fill();
           this.ctx.strokeStyle = '#38BDF8';
-          this.ctx.lineWidth = 2;
-
-          for (const [p1, p2] of connections) {
-            const pt1 = this.videoToCanvas(lms[p1]);
-            const pt2 = this.videoToCanvas(lms[p2]);
-            this.ctx.beginPath();
-            this.ctx.moveTo(pt1.x, pt1.y);
-            this.ctx.lineTo(pt2.x, pt2.y);
-            this.ctx.stroke();
-          }
-
-          // Tip & Palm Dots
-          [4, 8, 12, 16, 20, 0, 9].forEach((idx) => {
-            const pt = this.videoToCanvas(lms[idx]);
-            this.ctx.beginPath();
-            this.ctx.arc(pt.x, pt.y, 4.5, 0, Math.PI * 2);
-            this.ctx.fillStyle = [4, 8, 12, 16, 20].includes(idx) ? '#F472B6' : '#34D399';
-            this.ctx.strokeStyle = '#FFFFFF';
-            this.ctx.lineWidth = 1.5;
-            this.ctx.fill();
-            this.ctx.stroke();
-          });
-          this.ctx.restore();
-        }
-
-        // Glowing Catch Shields
-        for (const h of hands) {
-          const cx = (h.left + h.right) / 2;
-
-          this.ctx.save();
-          // Energy Line Top Barrier
-          this.ctx.beginPath();
-          this.ctx.moveTo(h.left - 5, h.top);
-          this.ctx.lineTo(h.right + 5, h.top);
-          this.ctx.strokeStyle = '#34D399';
-          this.ctx.lineWidth = 5;
-          this.ctx.stroke();
-
-          this.ctx.beginPath();
-          this.ctx.moveTo(h.left, h.top);
-          this.ctx.lineTo(h.right, h.top);
-          this.ctx.strokeStyle = '#A7F3D0';
-          this.ctx.lineWidth = 2;
-          this.ctx.stroke();
-
-          // Dashed aura
-          this.ctx.strokeStyle = '#06B6D4';
-          this.ctx.lineWidth = 2;
-          this.ctx.setLineDash([4, 3]);
-          this.ctx.strokeRect(h.left, h.top, h.right - h.left, h.bottom - h.top);
-          this.ctx.setLineDash([]);
-
-          // Corner brackets
-          const cw = 14;
-          this.ctx.strokeStyle = '#FCD34D';
           this.ctx.lineWidth = 3;
-          [
-            [h.left, h.top, cw, 0, 0, cw],
-            [h.right, h.top, -cw, 0, 0, cw],
-            [h.left, h.bottom, cw, 0, 0, -cw],
-            [h.right, h.bottom, -cw, 0, 0, -cw]
-          ].forEach(([bx, by, dx, dy, ex, ey]) => {
-            this.ctx.beginPath();
-            this.ctx.moveTo(bx + dx, by + dy);
-            this.ctx.lineTo(bx, by);
-            this.ctx.lineTo(bx + ex, by + ey);
-            this.ctx.stroke();
-          });
+          this.ctx.stroke();
 
-          // Label
-          this.ctx.fillStyle = '#34D399';
-          this.ctx.font = 'bold 10px Outfit';
+          // Barrier Top Line
+          this.ctx.beginPath();
+          this.ctx.moveTo(left, nosePt.y);
+          this.ctx.lineTo(right, nosePt.y);
+          this.ctx.strokeStyle = '#34D399';
+          this.ctx.lineWidth = 4;
+          this.ctx.stroke();
+
+          // 3. Neon Target Ring on Nose Tip (Animated pulse)
+          const pulse = Math.sin(timestamp * 0.008) * 3;
+          this.ctx.beginPath();
+          this.ctx.arc(nosePt.x, nosePt.y, 14 + pulse, 0, Math.PI * 2);
+          this.ctx.strokeStyle = '#F59E0B';
+          this.ctx.lineWidth = 2.5;
+          this.ctx.stroke();
+
+          // 4. Center Nose Point (Neon red / Bullseye)
+          this.ctx.beginPath();
+          this.ctx.arc(nosePt.x, nosePt.y, 7, 0, Math.PI * 2);
+          this.ctx.fillStyle = '#EF4444';
+          this.ctx.fill();
+          this.ctx.strokeStyle = '#FFFFFF';
+          this.ctx.lineWidth = 2;
+          this.ctx.stroke();
+
+          // 5. Target Label
+          this.ctx.fillStyle = '#FDE047';
+          this.ctx.font = 'bold 11px Outfit, sans-serif';
           this.ctx.textAlign = 'center';
-          this.ctx.fillText('✦ BÀN TAY HỨNG ✦', cx, h.top - 12);
+          this.ctx.fillText('👃 TÂM HỨNG MŨI', nosePt.x, nosePt.y - 24);
+
           this.ctx.restore();
         }
       }
@@ -1245,7 +1292,7 @@ class WebArcadeApp {
 
     // 3. ENGINE UPDATE
     if (!this.paused) {
-      const events = this.engine.update(dt, hands);
+      const events = this.engine.update(dt, catchers);
       for (const ev of events) {
         if (ev.good) {
           if (ev.combo >= 7) {

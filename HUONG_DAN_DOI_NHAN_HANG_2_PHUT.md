@@ -20,7 +20,8 @@ Khi bạn nhận được nhãn hàng và sản phẩm mới vào phút chót, b
 
 ## 🎁 BƯỚC 2: ĐỔI SẢN PHẨM RƠI TRONG GAME (Mất 30 giây)
 
-1. Chuẩn bị ảnh sản phẩm (đã xóa phông nền hoặc PNG trong suốt).
+1. Chuẩn bị ảnh sản phẩm (ảnh PNG, JPG chụp sản phẩm).
+   > **Lưu ý đặc biệt:** Ảnh sản phẩm bạn thả vào dù còn dính phông nền trắng hay nền studio, hệ thống web game sẽ **tự động tách & xóa nền thông minh sang trong suốt (Transparent)** trước khi đưa vào game rơi và hiển thị ở khay sản phẩm!
 2. Thả các ảnh sản phẩm vào thư mục:
    ```
    assets/products/
