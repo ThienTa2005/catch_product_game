@@ -171,7 +171,6 @@ class SoundManager {
         gain2.gain.exponentialRampToValueAtTime(0.01, now + 0.14);
         osc2.start(now);
         osc2.stop(now + 0.14);
-      }
       } else if (type === 'combo' || type === 'fever') {
         osc.type = 'triangle';
         osc.frequency.setValueAtTime(523.25, now);
