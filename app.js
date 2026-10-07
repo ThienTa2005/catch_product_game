@@ -470,42 +470,58 @@ class WebArcadeApp {
     this.headerVoucherBtn.addEventListener('click', () => this.openVoucherModal());
     this.headerLbBtn.addEventListener('click', () => this.openLeaderboardModal());
 
-    // Welcome start buttons
-    document.getElementById('welcome-start-camera-btn').addEventListener('click', () => {
-      this.modeSelect.value = 'camera';
-      this.startGame();
-    });
-    document.getElementById('welcome-start-mouse-btn').addEventListener('click', () => {
-      this.modeSelect.value = 'mouse';
-      this.startGame();
-    });
+    // Welcome start button (Chỉ còn chế độ camera AI chóp mũi)
+    const welcomeCameraBtn = document.getElementById('welcome-start-camera-btn');
+    if (welcomeCameraBtn) {
+      welcomeCameraBtn.addEventListener('click', () => {
+        this.mode = 'camera';
+        this.useMouse = false;
+        this.startGame();
+      });
+    }
+
+    const welcomeMouseBtn = document.getElementById('welcome-start-mouse-btn');
+    if (welcomeMouseBtn) {
+      welcomeMouseBtn.addEventListener('click', () => {
+        this.mode = 'mouse';
+        this.useMouse = true;
+        this.startGame();
+      });
+    }
 
     // Control bar
     this.mainStartBtn.addEventListener('click', () => this.startGame());
     this.mainPauseBtn.addEventListener('click', () => this.togglePause());
 
-    this.modeSelect.addEventListener('change', (e) => {
-      this.mode = e.target.value;
-      this.useMouse = (this.mode === 'mouse');
-      if (this.useMouse) {
-        this.touchHint.style.display = this.isTouchDevice ? 'block' : 'none';
-        this.setStatus('🎮 Chế độ Chuột / Cảm ứng: Di chuyển chuột hoặc ngón tay để hứng sản phẩm!');
-      } else {
-        this.touchHint.style.display = 'none';
-        this.setStatus('📷 Chế độ Webcam: AI nhận diện chóp mũi đang hoạt động. Di chuyển mũi để hứng quà!');
-      }
-    });
+    if (this.modeSelect) {
+      this.modeSelect.addEventListener('change', (e) => {
+        this.mode = e.target.value;
+        this.useMouse = (this.mode === 'mouse');
+        if (this.useMouse) {
+          if (this.touchHint) this.touchHint.style.display = this.isTouchDevice ? 'block' : 'none';
+          this.setStatus('🎮 Chế độ Chuột / Cảm ứng: Di chuyển chuột hoặc ngón tay để hứng sản phẩm!');
+        } else {
+          if (this.touchHint) this.touchHint.style.display = 'none';
+          this.setStatus('📷 Chế độ Webcam: AI nhận diện chóp mũi đang hoạt động. Di chuyển mũi để hứng quà!');
+        }
+      });
+    }
 
-    this.settingsToggleBtn.addEventListener('click', () => {
-      const isHidden = this.settingsDrawer.style.display === 'none';
-      this.settingsDrawer.style.display = isHidden ? 'flex' : 'none';
-      this.settingsToggleBtn.textContent = isHidden ? '⚙️ Cài đặt ▲' : '⚙️ Cài đặt ▼';
-    });
+    if (this.settingsToggleBtn && this.settingsDrawer) {
+      this.settingsToggleBtn.addEventListener('click', () => {
+        const isHidden = this.settingsDrawer.style.display === 'none';
+        this.settingsDrawer.style.display = isHidden ? 'flex' : 'none';
+        this.settingsToggleBtn.textContent = isHidden ? '⚙️ Cài đặt ▲' : '⚙️ Cài đặt ▼';
+      });
+    }
 
-    // Presets
-    document.getElementById('preset-easy-btn').addEventListener('click', (e) => this.applyPreset(130, 1.5, 60, e.target));
-    document.getElementById('preset-normal-btn').addEventListener('click', (e) => this.applyPreset(180, 1.2, 60, e.target));
-    document.getElementById('preset-hard-btn').addEventListener('click', (e) => this.applyPreset(260, 0.8, 60, e.target));
+    // Presets (nếu tồn tại)
+    const easyBtn = document.getElementById('preset-easy-btn');
+    if (easyBtn) easyBtn.addEventListener('click', (e) => this.applyPreset(130, 1.5, 60, e.target));
+    const normalBtn = document.getElementById('preset-normal-btn');
+    if (normalBtn) normalBtn.addEventListener('click', (e) => this.applyPreset(180, 1.2, 60, e.target));
+    const hardBtn = document.getElementById('preset-hard-btn');
+    if (hardBtn) hardBtn.addEventListener('click', (e) => this.applyPreset(260, 0.8, 60, e.target));
 
     // Canvas Mouse & Touch Tracking
     const getCanvasPos = (clientX, clientY) => {
@@ -847,25 +863,36 @@ class WebArcadeApp {
     return offCanvas.toDataURL('image/png');
   }
 
-  // Settings Presets
+  // Settings Presets (nếu có)
   applyPreset(speed, interval, duration, targetBtn) {
-    document.getElementById('cfg-speed').value = speed;
-    document.getElementById('cfg-interval').value = interval;
-    document.getElementById('cfg-duration').value = duration;
+    const sEl = document.getElementById('cfg-speed');
+    const iEl = document.getElementById('cfg-interval');
+    const dEl = document.getElementById('cfg-duration');
+    if (sEl) sEl.value = speed;
+    if (iEl) iEl.value = interval;
+    if (dEl) dEl.value = duration;
 
     document.querySelectorAll('.preset-btn').forEach(b => b.classList.remove('active'));
     if (targetBtn) targetBtn.classList.add('active');
   }
 
   getSettingsFromInputs() {
+    const gainEl = document.getElementById('cfg-gain');
+    const lossEl = document.getElementById('cfg-loss');
+    const speedEl = document.getElementById('cfg-speed');
+    const intervalEl = document.getElementById('cfg-interval');
+    const sizeEl = document.getElementById('cfg-size');
+    const durationEl = document.getElementById('cfg-duration');
+    const voucherEl = document.getElementById('cfg-voucher');
+
     return {
-      gain: Math.max(1, parseInt(document.getElementById('cfg-gain').value || '1', 10)),
-      loss: Math.max(0, parseInt(document.getElementById('cfg-loss').value || '1', 10)),
-      speed: Math.max(50, parseFloat(document.getElementById('cfg-speed').value || '180')),
-      interval: Math.max(0.3, parseFloat(document.getElementById('cfg-interval').value || '1.2')),
-      size: Math.max(30, parseInt(document.getElementById('cfg-size').value || '68', 10)),
-      duration: Math.max(0, parseInt(document.getElementById('cfg-duration').value || '60', 10)),
-      voucherPts: Math.max(5, parseInt(document.getElementById('cfg-voucher').value || '15', 10)),
+      gain: gainEl ? Math.max(1, parseInt(gainEl.value || '1', 10)) : DEFAULT_SETTINGS.gain,
+      loss: lossEl ? Math.max(0, parseInt(lossEl.value || '1', 10)) : DEFAULT_SETTINGS.loss,
+      speed: speedEl ? Math.max(50, parseFloat(speedEl.value || '180')) : DEFAULT_SETTINGS.speed,
+      interval: intervalEl ? Math.max(0.3, parseFloat(intervalEl.value || '1.2')) : DEFAULT_SETTINGS.interval,
+      size: sizeEl ? Math.max(30, parseInt(sizeEl.value || '68', 10)) : DEFAULT_SETTINGS.size,
+      duration: durationEl ? Math.max(0, parseInt(durationEl.value || '60', 10)) : DEFAULT_SETTINGS.duration,
+      voucherPts: voucherEl ? Math.max(5, parseInt(voucherEl.value || '15', 10)) : (this.currentBrand?.voucherTarget || DEFAULT_SETTINGS.voucherPts),
       images: Math.max(1, this.productImages.length)
     };
   }
@@ -904,13 +931,13 @@ class WebArcadeApp {
     this.mainPauseBtn.disabled = false;
     this.mainPauseBtn.textContent = '⏸ Tạm dừng (Space)';
 
-    this.useMouse = (this.modeSelect.value === 'mouse');
+    this.useMouse = Boolean(this.modeSelect && this.modeSelect.value === 'mouse');
 
     this.sound.play('countdown');
 
     if (this.useMouse) {
       this.running = true;
-      this.touchHint.style.display = this.isTouchDevice ? 'block' : 'none';
+      if (this.touchHint) this.touchHint.style.display = this.isTouchDevice ? 'block' : 'none';
       this.setStatus('🎮 Chế độ Chuột: Di chuyển trong khung để hứng sản phẩm rơi!');
       return;
     }

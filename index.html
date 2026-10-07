@@ -84,11 +84,7 @@
             <div class="welcome-actions">
               <button class="cta-start-btn" id="welcome-start-camera-btn">
                 <span class="btn-icon">📷</span>
-                <span class="btn-text">BẬT CAMERA & CHƠI BẰNG MŨI</span>
-              </button>
-              <button class="cta-mouse-btn" id="welcome-start-mouse-btn">
-                <span class="btn-icon">🖱️</span>
-                <span class="btn-text">CHƠI BẰNG CHUỘT / CẢM ỨNG (KHÔNG CẦN CAMERA)</span>
+                <span class="btn-text">BẬT CAMERA & BẮT ĐẦU CHƠI</span>
               </button>
             </div>
 
@@ -103,11 +99,6 @@
           <div class="loader-spinner"></div>
           <div class="loader-text" id="loader-status-text">Đang tải mô hình AI nhận diện khuôn mặt & mũi MediaPipe...</div>
           <div class="loader-sub">Vui lòng chấp nhận quyền truy cập Camera nếu trình duyệt yêu cầu</div>
-        </div>
-
-        <!-- Mobile Touch Helper Indicator -->
-        <div class="touch-control-hint" id="touch-hint" style="display: none;">
-          👆 Chạm hoặc kéo ngón tay trên màn hình để di chuyển đĩa hứng!
         </div>
       </div>
     </main>
@@ -128,77 +119,22 @@
     <!-- 4. CONTROLS BAR -->
     <nav class="controls-bar" id="controls-bar">
       <div class="controls-left">
-        <button class="ctrl-btn start-btn" id="main-start-btn">
-          ▶ BẮT ĐẦU / CHƠI LẠI
-        </button>
+        <div class="controls-actions-group">
+          <button class="ctrl-btn start-btn" id="main-start-btn">
+            ▶ BẮT ĐẦU / CHƠI LẠI
+          </button>
 
-        <button class="ctrl-btn pause-btn" id="main-pause-btn" disabled>
-          ⏸ Tạm dừng (Space)
-        </button>
-
-        <div class="control-group">
-          <label for="mode-select" class="ctrl-label">Chế độ:</label>
-          <select id="mode-select" class="ctrl-select">
-            <option value="camera">📷 Webcam / Di chuyển mũi</option>
-            <option value="mouse">🖱️ Chuột / Cảm ứng</option>
-          </select>
+          <button class="ctrl-btn pause-btn" id="main-pause-btn" disabled>
+            ⏸ Tạm dừng (Space)
+          </button>
         </div>
 
-        <label class="ctrl-chk" title="Hiển thị tâm ngắm và đĩa hứng tại chóp mũi">
+        <label class="ctrl-chk" title="Hiển thị tâm ngắm và điểm hứng tại chóp mũi">
           <input type="checkbox" id="show-shield-chk" checked>
           <span>🎯 Tâm ngắm mũi</span>
         </label>
       </div>
-
-      <div class="controls-right">
-        <button class="ctrl-btn settings-toggle-btn" id="settings-toggle-btn">
-          ⚙️ Cài đặt ▼
-        </button>
-      </div>
     </nav>
-
-    <!-- 5. EXPANDABLE SETTINGS PANEL -->
-    <section class="settings-drawer" id="settings-drawer" style="display: none;">
-      <!-- Difficulty Presets -->
-      <div class="preset-row">
-        <span class="preset-label">Độ khó nhanh:</span>
-        <button class="preset-btn easy" id="preset-easy-btn">🍀 Dễ (130px/s, 1.5s)</button>
-        <button class="preset-btn normal active" id="preset-normal-btn">⚡ Tiêu chuẩn (180px/s, 1.2s)</button>
-        <button class="preset-btn hard" id="preset-hard-btn">🔥 Thử thách (260px/s, 0.8s)</button>
-      </div>
-
-      <!-- Detailed Inputs -->
-      <div class="inputs-grid">
-        <div class="input-item">
-          <label for="cfg-gain">Điểm bắt (+)</label>
-          <input type="number" id="cfg-gain" value="1" min="1" max="100">
-        </div>
-        <div class="input-item">
-          <label for="cfg-loss">Điểm trừ (-)</label>
-          <input type="number" id="cfg-loss" value="1" min="0" max="100">
-        </div>
-        <div class="input-item">
-          <label for="cfg-speed">Tốc độ rơi (px/s)</label>
-          <input type="number" id="cfg-speed" value="180" min="50" max="800">
-        </div>
-        <div class="input-item">
-          <label for="cfg-interval">Nhịp rơi (giây)</label>
-          <input type="number" id="cfg-interval" value="1.2" step="0.1" min="0.3" max="5.0">
-        </div>
-        <div class="input-item">
-          <label for="cfg-size">Cỡ sản phẩm (px)</label>
-          <input type="number" id="cfg-size" value="68" min="30" max="150">
-        </div>
-        <div class="input-item">
-          <label for="cfg-duration">Thời gian ván (giây)</label>
-          <input type="number" id="cfg-duration" value="60" min="0" max="300" title="0 = không giới hạn thời gian">
-        </div>
-        <div class="input-item">
-          <label for="cfg-voucher">Điểm Voucher</label>
-          <input type="number" id="cfg-voucher" value="15" min="5" max="100">
-        </div>
-      </div>
-    </section>
 
     <!-- 6. BOTTOM STATUS / TICKER BAR -->
     <footer class="arcade-status-bar" id="status-bar">
