@@ -14,7 +14,7 @@ window.BRAND_PRESETS = {
     accentColor: "#F59E0B",  // Vàng hạt cà phê
     voucherCode: "HIGHLANDS-VIP",
     voucherDiscount: "GIẢM 30%",
-    voucherTarget: 15,
+    voucherTarget: 10,
     voucherDesc: "Nhận ngay mã ưu đãi 30% cho tất cả thức uống Highlands!"
   },
   pepsi: {
@@ -25,7 +25,7 @@ window.BRAND_PRESETS = {
     accentColor: "#EF4444",  // Đỏ Pepsi
     voucherCode: "PEPSI-SANGKHOAI",
     voucherDiscount: "TẶNG 1 LON",
-    voucherTarget: 15,
+    voucherTarget: 10,
     voucherDesc: "Nhận ngay voucher đổi lon Pepsi mát lạnh tại các điểm bán!"
   },
   coca: {
@@ -36,7 +36,7 @@ window.BRAND_PRESETS = {
     accentColor: "#FFFFFF",
     voucherCode: "COCA-REALMAGIC",
     voucherDiscount: "GIẢM 25%",
-    voucherTarget: 15,
+    voucherTarget: 10,
     voucherDesc: "Bật nắp săn quà cùng Coca-Cola ngay hôm nay!"
   },
   starbucks: {
@@ -47,7 +47,7 @@ window.BRAND_PRESETS = {
     accentColor: "#D4AF37",  // Vàng kim
     voucherCode: "STARBUCKS-VIP",
     voucherDiscount: "FREE UPSIZE",
-    voucherTarget: 15,
+    voucherTarget: 10,
     voucherDesc: "Miễn phí nâng size đồ uống khi xuất trình mã này!"
   },
   shopee: {
@@ -58,7 +58,7 @@ window.BRAND_PRESETS = {
     accentColor: "#FBBF24",
     voucherCode: "SHOPEE-VOUCHER50K",
     voucherDiscount: "GIẢM 50K",
-    voucherTarget: 15,
+    voucherTarget: 10,
     voucherDesc: "Áp dụng cho đơn hàng bất kỳ trên ứng dụng Shopee!"
   },
   momo: {
@@ -69,7 +69,7 @@ window.BRAND_PRESETS = {
     accentColor: "#FCD34D",
     voucherCode: "MOMO-LUCKY100K",
     voucherDiscount: "TẶNG 100K",
-    voucherTarget: 15,
+    voucherTarget: 10,
     voucherDesc: "Hoàn tiền hoặc giảm giá khi thanh toán qua MoMo!"
   }
 };
@@ -83,7 +83,7 @@ window.ACTIVE_BRAND = {
   accentColor: "#F59E0B",
   voucherCode: "CATCH15-VIP",
   voucherDiscount: "GIẢM 20%",
-  voucherTarget: 15,
+  voucherTarget: 10,
   voucherDesc: "Chúc mừng bạn đã xuất sắc săn được mã Voucher ưu đãi độc quyền!",
   productImages: [] // Nếu để rỗng sẽ dùng các sản phẩm trong assets/products/ và tự động xóa nền
 };
