@@ -76,14 +76,14 @@ window.BRAND_PRESETS = {
 
 // Cấu hình mặc định áp dụng khi mở game
 window.ACTIVE_BRAND = {
-  name: "Arcade Pop",
-  title: "HỨNG SẢN PHẨM",
-  badge: "✨ POP ARCADE EDITION • WEB ONLINE",
+  name: "Thương Hiệu",
+  title: "HỨNG QUÀ NHẬN VOUCHER",
+  badge: "🌟 TRẢI NGHIỆM TƯƠNG TÁC THƯƠNG HIỆU",
   primaryColor: "#4F46E5",
   accentColor: "#F59E0B",
   voucherCode: "CATCH15-VIP",
   voucherDiscount: "GIẢM 20%",
   voucherTarget: 15,
-  voucherDesc: "Bạn đã xuất sắc săn được mã Voucher VIP độc quyền!",
-  productImages: [] // Nếu để rỗng sẽ dùng 6 sản phẩm mặc định
+  voucherDesc: "Chúc mừng bạn đã xuất sắc săn được mã Voucher ưu đãi độc quyền!",
+  productImages: [] // Nếu để rỗng sẽ dùng các sản phẩm trong assets/products/ và tự động xóa nền
 };

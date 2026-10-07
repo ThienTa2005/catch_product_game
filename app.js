@@ -362,10 +362,19 @@ class WebArcadeApp {
     this.productImages = [];
     this.autoRemoveBg = true;
 
-    // MediaPipe Face & Nose Landmarker
+    // MediaPipe Face & Nose Landmarker & Throttled Tracking
     this.faceLandmarker = null;
     this.isModelLoading = false;
     this.cameraStream = null;
+    this.isDetecting = false;
+    this.lastVideoTime = -1;
+    this.lastDetectTime = 0;
+    this.targetNosePos = null;
+    this.currentNosePos = null;
+    this.targetCatcherWidth = 110;
+    this.smoothedCatcherWidth = 110;
+    this.hasActiveFace = false;
+    this.activeNoseCatcher = null;
     this.faceLandmarksList = [];
 
     // Loop timing
@@ -929,18 +938,39 @@ class WebArcadeApp {
         "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/wasm"
       );
 
-      this.faceLandmarker = await FaceLandmarker.createFromOptions(vision, {
-        baseOptions: {
-          modelAssetPath: "https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/1/face_landmarker.task",
-          delegate: "GPU"
-        },
-        outputFaceBlendshapes: false,
-        runningMode: "VIDEO",
-        numFaces: 2,
-        minFaceDetectionConfidence: 0.5,
-        minFacePresenceConfidence: 0.5,
-        minTrackingConfidence: 0.5
-      });
+      const modelUrl = "https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/1/face_landmarker.task";
+
+      // Thử dùng tăng tốc GPU trước, nếu trình duyệt/máy không hỗ trợ thì fallback sang CPU để không bị crash/đứng hình
+      try {
+        this.faceLandmarker = await FaceLandmarker.createFromOptions(vision, {
+          baseOptions: {
+            modelAssetPath: modelUrl,
+            delegate: "GPU"
+          },
+          outputFaceBlendshapes: false,
+          outputFacialTransformationMatrixes: false,
+          runningMode: "VIDEO",
+          numFaces: 1, // Tối ưu: chỉ track 1 người để giảm 50% tải xử lý, mượt 60fps
+          minFaceDetectionConfidence: 0.5,
+          minFacePresenceConfidence: 0.5,
+          minTrackingConfidence: 0.5
+        });
+      } catch (gpuErr) {
+        console.warn("GPU delegate không khả dụng, chuyển sang chế độ CPU ổn định:", gpuErr);
+        this.faceLandmarker = await FaceLandmarker.createFromOptions(vision, {
+          baseOptions: {
+            modelAssetPath: modelUrl,
+            delegate: "CPU"
+          },
+          outputFaceBlendshapes: false,
+          outputFacialTransformationMatrixes: false,
+          runningMode: "VIDEO",
+          numFaces: 1,
+          minFaceDetectionConfidence: 0.5,
+          minFacePresenceConfidence: 0.5,
+          minTrackingConfidence: 0.5
+        });
+      }
 
       this.loaderStatusText.textContent = 'Đang bật Camera webcam của bạn...';
       await this.startWebcam();
@@ -955,14 +985,15 @@ class WebArcadeApp {
     }
   }
 
-  // Start Webcam Video Stream
+  // Start Webcam Video Stream với chuẩn phần cứng không lag
   async startWebcam() {
     try {
       const constraints = {
         video: {
-          width: { ideal: 960 },
-          height: { ideal: 540 },
-          facingMode: "user"
+          width: { ideal: 1280, max: 1920 },
+          height: { ideal: 720, max: 1080 },
+          facingMode: "user",
+          frameRate: { ideal: 30, max: 60 }
         },
         audio: false
       };
@@ -970,9 +1001,15 @@ class WebArcadeApp {
       const stream = await navigator.mediaDevices.getUserMedia(constraints);
       this.cameraStream = stream;
       this.video.srcObject = stream;
+      this.video.playsInline = true;
+      this.video.muted = true;
+      this.video.autoplay = true;
+
       await new Promise((resolve) => {
-        this.video.onloadedmetadata = () => {
-          this.video.play();
+        this.video.onloadedmetadata = async () => {
+          try {
+            await this.video.play();
+          } catch (e) {}
           resolve();
         };
       });
@@ -1081,7 +1118,7 @@ class WebArcadeApp {
       const sx = (bw - sw) / 2;
       const sy = (bh - sh) / 2;
       this.ctx.drawImage(this.bgImage, sx, sy, sw, sh, 0, 0, W, H);
-      this.ctx.fillStyle = 'rgba(10, 7, 30, 0.45)';
+      this.ctx.fillStyle = 'rgba(10, 8, 26, 0.12)';
       this.ctx.fillRect(0, 0, W, H);
       return true;
     }
@@ -1091,30 +1128,28 @@ class WebArcadeApp {
   // Render Idle Background when game not running
   renderIdle(timestamp) {
     if (!this.drawBackgroundToCanvas()) {
-      // Subtle cyberpunk background grid
       this.ctx.fillStyle = '#0F0B26';
       this.ctx.fillRect(0, 0, W, H);
     }
 
-    // Glowing arcade circles
-    const pulse = Math.sin(timestamp * 0.003) * 15;
+    // Subtle gentle glow rings
+    const pulse = Math.sin(timestamp * 0.003) * 12;
     this.ctx.beginPath();
     this.ctx.arc(W / 2, H / 2, 160 + pulse, 0, Math.PI * 2);
-    this.ctx.strokeStyle = 'rgba(139, 92, 246, 0.25)';
-    this.ctx.lineWidth = 3;
+    this.ctx.strokeStyle = 'rgba(255, 255, 255, 0.12)';
+    this.ctx.lineWidth = 2;
     this.ctx.stroke();
 
     this.ctx.beginPath();
-    this.ctx.arc(W / 2, H / 2, 220 + pulse * 1.5, 0, Math.PI * 2);
-    this.ctx.strokeStyle = 'rgba(6, 182, 212, 0.2)';
-    this.ctx.lineWidth = 2;
+    this.ctx.arc(W / 2, H / 2, 220 + pulse * 1.2, 0, Math.PI * 2);
+    this.ctx.strokeStyle = 'rgba(245, 158, 11, 0.15)';
+    this.ctx.lineWidth = 1.5;
     this.ctx.stroke();
   }
 
   // Main Active Game Frame
   updateAndRenderGame(dt, timestamp) {
     let catchers = [];
-    this.faceLandmarksList = [];
 
     // Screen Shake
     let shakeDx = 0;
@@ -1144,7 +1179,7 @@ class WebArcadeApp {
         const vw = this.video.videoWidth || W;
         const vh = this.video.videoHeight || H;
 
-        // Calculate object-fit: cover crop to preserve natural face proportions
+        // Tự động căn tỷ lệ giữ nguyên khuôn mặt tự nhiên, không méo hình
         const scale = Math.max(W / vw, H / vh);
         const sw = W / scale;
         const sh = H / scale;
@@ -1157,136 +1192,139 @@ class WebArcadeApp {
         this.ctx.drawImage(this.video, sx, sy, sw, sh, 0, 0, W, H);
         this.ctx.restore();
 
-        // Darken camera slightly for vibrant neon contrast
-        this.ctx.fillStyle = 'rgba(11, 8, 30, 0.28)';
+        // Lớp phủ nhẹ dịu mắt, làm nổi bật sản phẩm và thương hiệu
+        this.ctx.fillStyle = 'rgba(10, 8, 25, 0.06)';
         this.ctx.fillRect(0, 0, W, H);
 
-        // AI Face & Nose Detection
-        if (this.faceLandmarker) {
+        // AI FACE & NOSE DETECTION: Non-blocking, throttled để tránh nghẽn luồng làm đơ camera
+        if (this.faceLandmarker && !this.isDetecting && this.video.currentTime !== this.lastVideoTime && (timestamp - this.lastDetectTime >= 30)) {
+          this.lastVideoTime = this.video.currentTime;
+          this.lastDetectTime = timestamp;
+          this.isDetecting = true;
+
           try {
-            const detections = this.faceLandmarker.detectForVideo(this.video, timestamp);
-            if (detections && detections.faceLandmarks) {
-              for (const landmarks of detections.faceLandmarks) {
-                // Landmark 1: Tip of the nose (Chóp mũi)
-                const nosePt = this.videoToCanvas(landmarks[1]);
+            const results = this.faceLandmarker.detectForVideo(this.video, timestamp);
+            if (results && results.faceLandmarks && results.faceLandmarks.length > 0) {
+              const landmarks = results.faceLandmarks[0];
+              const nosePt = this.videoToCanvas(landmarks[1]);
+              const leftCheek = this.videoToCanvas(landmarks[234]);
+              const rightCheek = this.videoToCanvas(landmarks[454]);
+              const faceWidth = Math.hypot(rightCheek.x - leftCheek.x, rightCheek.y - leftCheek.y) || 120;
+              const catcherWidth = Math.max(90, Math.min(160, faceWidth * 0.72));
 
-                // Measure face width between cheek points 234 and 454 to scale catcher
-                const leftCheek = this.videoToCanvas(landmarks[234]);
-                const rightCheek = this.videoToCanvas(landmarks[454]);
-                const faceWidth = Math.hypot(rightCheek.x - leftCheek.x, rightCheek.y - leftCheek.y) || 120;
-                const catcherWidth = Math.max(90, Math.min(160, faceWidth * 0.75));
-
-                const left = nosePt.x - catcherWidth / 2;
-                const right = nosePt.x + catcherWidth / 2;
-                const top = nosePt.y - 18;
-                const bottom = nosePt.y + 24;
-
-                catchers.push({ left, top, right, bottom });
-                this.faceLandmarksList.push({ landmarks, nosePt, catcherWidth, left, top, right, bottom });
-              }
+              this.targetNosePos = { x: nosePt.x, y: nosePt.y };
+              this.targetCatcherWidth = catcherWidth;
+              this.hasActiveFace = true;
+            } else {
+              this.hasActiveFace = false;
             }
-          } catch (e) {}
+          } catch (detErr) {
+            // Bỏ qua lỗi khung hình bận
+          } finally {
+            this.isDetecting = false;
+          }
+        }
+
+        // LERPING 60 FPS: Nội suy mượt mà vị trí chóp mũi theo 60 khung hình/giây
+        if (this.targetNosePos) {
+          if (!this.currentNosePos) {
+            this.currentNosePos = { x: this.targetNosePos.x, y: this.targetNosePos.y };
+            this.smoothedCatcherWidth = this.targetCatcherWidth || 110;
+          } else {
+            const lerpSpeed = 0.38;
+            this.currentNosePos.x += (this.targetNosePos.x - this.currentNosePos.x) * lerpSpeed;
+            this.currentNosePos.y += (this.targetNosePos.y - this.currentNosePos.y) * lerpSpeed;
+            this.smoothedCatcherWidth += (this.targetCatcherWidth - this.smoothedCatcherWidth) * lerpSpeed;
+          }
+
+          const nx = this.currentNosePos.x;
+          const ny = this.currentNosePos.y;
+          const cWidth = this.smoothedCatcherWidth;
+
+          const left = nx - cWidth / 2;
+          const right = nx + cWidth / 2;
+          const top = ny - 20;
+          const bottom = ny + 24;
+
+          catchers.push({ left, top, right, bottom });
+          this.activeNoseCatcher = { x: nx, y: ny, width: cWidth, left, top, right, bottom };
         }
       }
     }
 
-    // 2. DRAW NOSE CATCHER / SHIELDS
+    // 2. DRAW NOSE CATCHER / TRAY (Phong cách nhãn hàng tinh tế, thanh lịch)
     if (this.showShieldChk.checked) {
       if (this.useMouse && this.mousePos) {
         const mx = this.mousePos.x;
         const my = this.mousePos.y;
 
-        // Arcade Catcher Saucer (Mouse / Touch Mode)
         this.ctx.save();
+        // Catcher Capsule
         this.ctx.beginPath();
-        this.ctx.ellipse(mx, my + 8, 80, 16, 0, 0, Math.PI * 2);
-        this.ctx.fillStyle = 'rgba(30, 27, 75, 0.85)';
-        this.ctx.strokeStyle = '#06B6D4';
-        this.ctx.lineWidth = 3;
-        this.ctx.fill();
-        this.ctx.stroke();
-
-        this.ctx.beginPath();
-        this.ctx.moveTo(mx - 75, my);
-        this.ctx.lineTo(mx + 75, my);
-        this.ctx.strokeStyle = '#38BDF8';
-        this.ctx.lineWidth = 4;
-        this.ctx.stroke();
-
-        this.ctx.beginPath();
-        this.ctx.arc(mx, my + 10, 8, 0, Math.PI * 2);
-        this.ctx.fillStyle = '#F59E0B';
-        this.ctx.strokeStyle = '#FEF08A';
-        this.ctx.lineWidth = 2;
-        this.ctx.fill();
-        this.ctx.stroke();
-
-        this.ctx.fillStyle = '#38BDF8';
-        this.ctx.font = 'bold 10px Outfit, sans-serif';
-        this.ctx.textAlign = 'center';
-        this.ctx.fillText('✨ ĐĨA HỨNG ✨', mx, my - 16);
-        this.ctx.restore();
-      } else {
-        // Draw MediaPipe Nose Catchers on Face
-        for (const item of this.faceLandmarksList) {
-          const { landmarks, nosePt, catcherWidth, left, top, right, bottom } = item;
-
-          this.ctx.save();
-
-          // 1. Nose Bridge Wireframe (landmarks [168, 6, 197, 195, 5, 4, 1])
-          const noseContour = [168, 6, 197, 195, 5, 4, 1];
-          this.ctx.beginPath();
-          noseContour.forEach((idx, i) => {
-            const pt = this.videoToCanvas(landmarks[idx]);
-            if (i === 0) this.ctx.moveTo(pt.x, pt.y);
-            else this.ctx.lineTo(pt.x, pt.y);
-          });
-          this.ctx.strokeStyle = 'rgba(6, 182, 212, 0.65)';
-          this.ctx.lineWidth = 2.5;
-          this.ctx.stroke();
-
-          // 2. Glowing Catcher Saucer at nose level
-          this.ctx.beginPath();
-          this.ctx.ellipse(nosePt.x, nosePt.y + 12, catcherWidth / 2, 14, 0, 0, Math.PI * 2);
-          this.ctx.fillStyle = 'rgba(79, 70, 229, 0.45)';
-          this.ctx.fill();
-          this.ctx.strokeStyle = '#38BDF8';
-          this.ctx.lineWidth = 3;
-          this.ctx.stroke();
-
-          // Barrier Top Line
-          this.ctx.beginPath();
-          this.ctx.moveTo(left, nosePt.y);
-          this.ctx.lineTo(right, nosePt.y);
-          this.ctx.strokeStyle = '#34D399';
-          this.ctx.lineWidth = 4;
-          this.ctx.stroke();
-
-          // 3. Neon Target Ring on Nose Tip (Animated pulse)
-          const pulse = Math.sin(timestamp * 0.008) * 3;
-          this.ctx.beginPath();
-          this.ctx.arc(nosePt.x, nosePt.y, 14 + pulse, 0, Math.PI * 2);
-          this.ctx.strokeStyle = '#F59E0B';
-          this.ctx.lineWidth = 2.5;
-          this.ctx.stroke();
-
-          // 4. Center Nose Point (Neon red / Bullseye)
-          this.ctx.beginPath();
-          this.ctx.arc(nosePt.x, nosePt.y, 7, 0, Math.PI * 2);
-          this.ctx.fillStyle = '#EF4444';
-          this.ctx.fill();
-          this.ctx.strokeStyle = '#FFFFFF';
-          this.ctx.lineWidth = 2;
-          this.ctx.stroke();
-
-          // 5. Target Label
-          this.ctx.fillStyle = '#FDE047';
-          this.ctx.font = 'bold 11px Outfit, sans-serif';
-          this.ctx.textAlign = 'center';
-          this.ctx.fillText('👃 TÂM HỨNG MŨI', nosePt.x, nosePt.y - 24);
-
-          this.ctx.restore();
+        if (this.ctx.roundRect) {
+          this.ctx.roundRect(mx - 75, my, 150, 14, 7);
+        } else {
+          this.ctx.rect(mx - 75, my, 150, 14);
         }
+        this.ctx.fillStyle = 'rgba(79, 70, 229, 0.8)';
+        this.ctx.fill();
+        this.ctx.strokeStyle = '#F59E0B';
+        this.ctx.lineWidth = 2;
+        this.ctx.stroke();
+
+        this.ctx.beginPath();
+        this.ctx.arc(mx, my + 7, 5, 0, Math.PI * 2);
+        this.ctx.fillStyle = '#FFFFFF';
+        this.ctx.fill();
+
+        this.ctx.fillStyle = '#FFFFFF';
+        this.ctx.font = '700 11px "Plus Jakarta Sans", "Be Vietnam Pro", sans-serif';
+        this.ctx.textAlign = 'center';
+        this.ctx.fillText('🎯 ĐIỂM HỨNG QUÀ', mx, my - 12);
+        this.ctx.restore();
+      } else if (this.activeNoseCatcher && this.hasActiveFace) {
+        const { x: nx, y: ny, width: cWidth, left, right } = this.activeNoseCatcher;
+
+        this.ctx.save();
+        // 1. Tinh tế: Vòng halo phát sáng nhẹ nhàng tại chóp mũi
+        const pulse = Math.sin(timestamp * 0.007) * 2;
+        this.ctx.beginPath();
+        this.ctx.arc(nx, ny, 10 + pulse, 0, Math.PI * 2);
+        this.ctx.fillStyle = 'rgba(245, 158, 11, 0.18)';
+        this.ctx.fill();
+        this.ctx.strokeStyle = '#F59E0B';
+        this.ctx.lineWidth = 1.8;
+        this.ctx.stroke();
+
+        // 2. Điểm tâm chóp mũi trang nhã
+        this.ctx.beginPath();
+        this.ctx.arc(nx, ny, 4.5, 0, Math.PI * 2);
+        this.ctx.fillStyle = '#FFFFFF';
+        this.ctx.fill();
+        this.ctx.strokeStyle = '#F59E0B';
+        this.ctx.lineWidth = 1.5;
+        this.ctx.stroke();
+
+        // 3. Khay hứng thương hiệu dạng capsule bo tròn
+        const trayY = ny + 10;
+        this.ctx.beginPath();
+        if (this.ctx.roundRect) {
+          this.ctx.roundRect(left, trayY, cWidth, 12, 6);
+        } else {
+          this.ctx.rect(left, trayY, cWidth, 12);
+        }
+        this.ctx.fillStyle = 'rgba(79, 70, 229, 0.75)';
+        this.ctx.fill();
+        this.ctx.strokeStyle = 'rgba(255, 255, 255, 0.8)';
+        this.ctx.lineWidth = 1.8;
+        this.ctx.stroke();
+
+        // 4. Nhãn phong cách chiến dịch thương hiệu
+        this.ctx.fillStyle = '#FFFFFF';
+        this.ctx.font = '700 11px "Plus Jakarta Sans", "Be Vietnam Pro", sans-serif';
+        this.ctx.textAlign = 'center';
+        this.ctx.fillText('🎯 ĐIỂM HỨNG QUÀ', nx, ny - 16);
+        this.ctx.restore();
       }
     }
 
@@ -1375,16 +1413,16 @@ class WebArcadeApp {
       this.ctx.fill();
     }
 
-    // 7. DRAW FLOATING TEXTS
+    // 7. DRAW FLOATING TEXTS (Font nhãn hàng thanh lịch)
     this.floatTexts = this.floatTexts.filter(ft => ft.update(dt));
     for (const ft of this.floatTexts) {
       this.ctx.save();
-      this.ctx.font = `bold ${ft.size}px Outfit, sans-serif`;
+      this.ctx.font = `700 ${ft.size}px "Plus Jakarta Sans", "Be Vietnam Pro", sans-serif`;
       this.ctx.textAlign = 'center';
 
       // Shadow
-      this.ctx.fillStyle = '#000000';
-      this.ctx.fillText(ft.text, ft.x + 25 + 2, ft.y + 2);
+      this.ctx.fillStyle = 'rgba(0, 0, 0, 0.6)';
+      this.ctx.fillText(ft.text, ft.x + 25 + 1.5, ft.y + 1.5);
 
       // Color
       this.ctx.fillStyle = ft.color;
@@ -1397,24 +1435,30 @@ class WebArcadeApp {
 
     // 9. PAUSED SCREEN OVERLAY
     if (this.paused) {
-      this.ctx.fillStyle = 'rgba(11, 9, 27, 0.7)';
+      this.ctx.fillStyle = 'rgba(11, 9, 27, 0.72)';
       this.ctx.fillRect(0, 0, W, H);
 
       this.ctx.save();
-      this.ctx.fillStyle = '#181438';
-      this.ctx.strokeStyle = '#6366F1';
-      this.ctx.lineWidth = 3;
-      this.ctx.fillRect(W / 2 - 200, H / 2 - 70, 400, 140);
-      this.ctx.strokeRect(W / 2 - 200, H / 2 - 70, 400, 140);
+      this.ctx.beginPath();
+      if (this.ctx.roundRect) {
+        this.ctx.roundRect(W / 2 - 200, H / 2 - 70, 400, 140, 18);
+      } else {
+        this.ctx.rect(W / 2 - 200, H / 2 - 70, 400, 140);
+      }
+      this.ctx.fillStyle = 'rgba(22, 17, 52, 0.95)';
+      this.ctx.fill();
+      this.ctx.strokeStyle = 'rgba(255, 255, 255, 0.16)';
+      this.ctx.lineWidth = 1.5;
+      this.ctx.stroke();
 
       this.ctx.fillStyle = '#FBBF24';
-      this.ctx.font = 'bold 26px Orbitron';
+      this.ctx.font = '800 24px "Plus Jakarta Sans", "Be Vietnam Pro", sans-serif';
       this.ctx.textAlign = 'center';
-      this.ctx.fillText('⏸ TẠM DỪNG', W / 2, H / 2 - 15);
+      this.ctx.fillText('⏸ ĐANG TẠM DỪNG', W / 2, H / 2 - 14);
 
-      this.ctx.fillStyle = '#E2E8F0';
-      this.ctx.font = '14px Outfit';
-      this.ctx.fillText('Nhấn Space hoặc nút Tạm dừng để tiếp tục', W / 2, H / 2 + 30);
+      this.ctx.fillStyle = '#CBD5E1';
+      this.ctx.font = '500 14px "Plus Jakarta Sans", "Be Vietnam Pro", sans-serif';
+      this.ctx.fillText('Nhấn phím Space hoặc bấm Tiếp tục để trở lại', W / 2, H / 2 + 28);
       this.ctx.restore();
     }
 
@@ -1426,87 +1470,111 @@ class WebArcadeApp {
     }
   }
 
-  // Draw Vibrant Arcade HUD
+  // Draw Brand HUD (Giao diện thẻ bo góc hiện đại, font nhãn hàng)
   renderHUD(timestamp) {
     // Top-Left HUD (Score & Highscore)
     this.ctx.save();
-    this.ctx.fillStyle = 'rgba(17, 14, 45, 0.85)';
-    this.ctx.strokeStyle = '#4F46E5';
-    this.ctx.lineWidth = 2;
-    this.ctx.fillRect(14, 12, 270, 76);
-    this.ctx.strokeRect(14, 12, 270, 76);
+    this.ctx.beginPath();
+    if (this.ctx.roundRect) {
+      this.ctx.roundRect(14, 12, 260, 72, 14);
+    } else {
+      this.ctx.rect(14, 12, 260, 72);
+    }
+    this.ctx.fillStyle = 'rgba(18, 14, 44, 0.72)';
+    this.ctx.fill();
+    this.ctx.strokeStyle = 'rgba(255, 255, 255, 0.14)';
+    this.ctx.lineWidth = 1.2;
+    this.ctx.stroke();
 
     this.ctx.fillStyle = '#FDE047';
-    this.ctx.font = 'bold 20px Orbitron';
+    this.ctx.font = '800 20px "Plus Jakarta Sans", "Be Vietnam Pro", sans-serif';
     this.ctx.textAlign = 'left';
-    this.ctx.fillText(`⭐ ĐIỂM: ${this.engine.score}`, 26, 42);
+    this.ctx.fillText(`⭐ Điểm: ${this.engine.score}`, 28, 42);
 
     this.ctx.fillStyle = '#94A3B8';
-    this.ctx.font = 'bold 11px Outfit';
-    this.ctx.fillText(`🏆 Kỷ lục: ${this.highScore}  •  Max Combo: ${this.engine.maxCombo}`, 26, 70);
+    this.ctx.font = '600 12px "Plus Jakarta Sans", "Be Vietnam Pro", sans-serif';
+    this.ctx.fillText(`🏆 Kỷ lục: ${this.highScore}  •  Combo: x${this.engine.maxCombo}`, 28, 68);
 
     // Top-Center Combo Banner
     if (this.engine.combo >= 2) {
       const isFever = this.engine.combo >= 5;
-      const cbText = isFever ? `⚡ SUPER COMBO x${this.engine.combo}!!` : `🔥 COMBO x${this.engine.combo}!`;
+      const cbText = isFever ? `⚡ SIÊU COMBO x${this.engine.combo}!!` : `🔥 COMBO x${this.engine.combo}!`;
       const cbCol = isFever ? '#EC4899' : '#F59E0B';
-      const pulse = Math.sin(timestamp * 0.012) * 4;
+      const pulse = Math.sin(timestamp * 0.012) * 3;
 
-      this.ctx.fillStyle = 'rgba(31, 19, 56, 0.9)';
+      this.ctx.beginPath();
+      if (this.ctx.roundRect) {
+        this.ctx.roundRect(W / 2 - 130, 14 + pulse, 260, 42, 21);
+      } else {
+        this.ctx.rect(W / 2 - 130, 14 + pulse, 260, 42);
+      }
+      this.ctx.fillStyle = 'rgba(25, 18, 55, 0.88)';
+      this.ctx.fill();
       this.ctx.strokeStyle = cbCol;
-      this.ctx.lineWidth = 2;
-      this.ctx.fillRect(W / 2 - 140, 14 + pulse, 280, 46);
-      this.ctx.strokeRect(W / 2 - 140, 14 + pulse, 280, 46);
+      this.ctx.lineWidth = 1.5;
+      this.ctx.stroke();
 
       this.ctx.fillStyle = cbCol;
-      this.ctx.font = 'bold 17px Orbitron';
+      this.ctx.font = '800 15px "Plus Jakarta Sans", "Be Vietnam Pro", sans-serif';
       this.ctx.textAlign = 'center';
-      this.ctx.fillText(cbText, W / 2, 43 + pulse);
+      this.ctx.fillText(cbText, W / 2, 41 + pulse);
     }
 
     // Top-Right HUD (Time & Accuracy)
     const remaining = Math.max(0, Math.ceil(this.engine.duration - this.engine.elapsed));
     const timeText = this.engine.duration ? `${remaining}s` : '∞';
 
-    this.ctx.fillStyle = 'rgba(17, 14, 45, 0.85)';
-    this.ctx.strokeStyle = '#4F46E5';
-    this.ctx.lineWidth = 2;
-    this.ctx.fillRect(W - 270, 12, 256, 76);
-    this.ctx.strokeRect(W - 270, 12, 256, 76);
+    this.ctx.beginPath();
+    if (this.ctx.roundRect) {
+      this.ctx.roundRect(W - 264, 12, 250, 72, 14);
+    } else {
+      this.ctx.rect(W - 264, 12, 250, 72);
+    }
+    this.ctx.fillStyle = 'rgba(18, 14, 44, 0.72)';
+    this.ctx.fill();
+    this.ctx.strokeStyle = 'rgba(255, 255, 255, 0.14)';
+    this.ctx.lineWidth = 1.2;
+    this.ctx.stroke();
 
     const timeCol = remaining > 20 ? '#34D399' : (remaining > 10 ? '#F59E0B' : '#EF4444');
     this.ctx.fillStyle = timeCol;
-    this.ctx.font = 'bold 18px Orbitron';
+    this.ctx.font = '800 18px "Plus Jakarta Sans", "Be Vietnam Pro", sans-serif';
     this.ctx.textAlign = 'left';
-    this.ctx.fillText(`⏳ Thời gian: ${timeText}`, W - 256, 40);
+    this.ctx.fillText(`⏳ Thời gian: ${timeText}`, W - 250, 40);
 
     // Timer Progress Bar
     if (this.engine.duration) {
-      const barW = 228;
+      const barW = 222;
       const prog = remaining / this.engine.duration;
-      this.ctx.fillStyle = '#1E1B4B';
-      this.ctx.fillRect(W - 256, 50, barW, 6);
+      this.ctx.fillStyle = 'rgba(255, 255, 255, 0.1)';
+      this.ctx.fillRect(W - 250, 48, barW, 5);
       this.ctx.fillStyle = timeCol;
-      this.ctx.fillRect(W - 256, 50, barW * prog, 6);
+      this.ctx.fillRect(W - 250, 48, barW * prog, 5);
     }
 
     const acc = this.engine.accuracy;
     this.ctx.fillStyle = '#CBD5E1';
-    this.ctx.font = 'bold 11px Outfit';
-    this.ctx.fillText(`🎯 Bắt: ${this.engine.caught}  •  Hụt: ${this.engine.missed} (${acc.toFixed(0)}%)`, W - 256, 72);
+    this.ctx.font = '600 12px "Plus Jakarta Sans", "Be Vietnam Pro", sans-serif';
+    this.ctx.fillText(`🎯 Trúng: ${this.engine.caught}  •  Trượt: ${this.engine.missed} (${acc.toFixed(0)}%)`, W - 250, 70);
 
-    // Hand indicator alert if hands not detected in camera mode
-    if (!this.useMouse && this.handLandmarksList.length === 0) {
-      this.ctx.fillStyle = 'rgba(49, 19, 19, 0.85)';
-      this.ctx.strokeStyle = '#EF4444';
-      this.ctx.lineWidth = 1;
-      this.ctx.fillRect(W / 2 - 200, H - 42, 400, 30);
-      this.ctx.strokeRect(W / 2 - 200, H - 42, 400, 30);
+    // Face indicator alert if face is not visible in camera mode
+    if (!this.useMouse && !this.hasActiveFace) {
+      this.ctx.beginPath();
+      if (this.ctx.roundRect) {
+        this.ctx.roundRect(W / 2 - 210, H - 44, 420, 32, 16);
+      } else {
+        this.ctx.rect(W / 2 - 210, H - 44, 420, 32);
+      }
+      this.ctx.fillStyle = 'rgba(20, 16, 45, 0.88)';
+      this.ctx.fill();
+      this.ctx.strokeStyle = '#F59E0B';
+      this.ctx.lineWidth = 1.2;
+      this.ctx.stroke();
 
-      this.ctx.fillStyle = '#FCA5A5';
-      this.ctx.font = 'bold 12px Outfit';
+      this.ctx.fillStyle = '#FDE047';
+      this.ctx.font = '600 12px "Plus Jakarta Sans", "Be Vietnam Pro", sans-serif';
       this.ctx.textAlign = 'center';
-      this.ctx.fillText('⚠️ Chưa thấy bàn tay — Hãy đưa tay vào trước webcam!', W / 2, H - 22);
+      this.ctx.fillText('💡 Hãy đưa khuôn mặt vào trước camera để đón quà!', W / 2, H - 23);
     }
     this.ctx.restore();
   }
@@ -1627,7 +1695,7 @@ class WebArcadeApp {
       row.innerHTML = `
         <td class="lb-rank-num ${rankClass}">${rankNum === 1 ? '🥇' : (rankNum === 2 ? '🥈' : (rankNum === 3 ? '🥉' : rankNum))}</td>
         <td style="font-weight: 700;">${entry.name}</td>
-        <td style="font-family: Orbitron; font-weight: 800; color: #34D399;">${entry.score}</td>
+        <td style="font-family: 'Plus Jakarta Sans', 'Be Vietnam Pro', sans-serif; font-weight: 800; color: #34D399;">${entry.score}</td>
         <td style="color: #FBBF24;">x${entry.combo}</td>
         <td><span class="lb-badge" style="background: ${col}25; color: ${col}; border: 1px solid ${col};">${entry.rank}</span></td>
         <td style="color: #94A3B8; font-size: 0.78rem;">${entry.date}</td>

@@ -4,15 +4,15 @@
    ========================================================== */
 
 :root {
-  --bg-dark: #0A071E;
-  --bg-card: #151036;
-  --bg-card-subtle: rgba(22, 17, 56, 0.85);
-  --bg-glass: rgba(26, 20, 66, 0.75);
+  --bg-dark: #0A081E;
+  --bg-card: rgba(18, 14, 44, 0.48);
+  --bg-card-subtle: rgba(22, 17, 52, 0.42);
+  --bg-glass: rgba(255, 255, 255, 0.08);
   
   --accent-cyan: #06B6D4;
   --accent-cyan-glow: #38BDF8;
-  --accent-purple: #8B5CF6;
-  --accent-purple-deep: #5B21B6;
+  --accent-purple: #6366F1;
+  --accent-purple-deep: #4338CA;
   --accent-emerald: #10B981;
   --accent-gold: #F59E0B;
   --accent-gold-light: #FDE047;
@@ -22,18 +22,18 @@
   --brand-primary: #4F46E5;
   --brand-accent: #F59E0B;
   
-  --text-main: #F8FAFC;
+  --text-main: #FFFFFF;
   --text-muted: #94A3B8;
-  --text-sub: #CBD5E1;
+  --text-sub: #E2E8F0;
   
-  --border-glow: rgba(139, 92, 246, 0.35);
-  --shadow-neon: 0 0 25px rgba(139, 92, 246, 0.25);
-  --radius-lg: 16px;
-  --radius-md: 10px;
-  --radius-sm: 6px;
+  --border-glow: rgba(255, 255, 255, 0.14);
+  --shadow-neon: 0 10px 30px rgba(0, 0, 0, 0.25);
+  --radius-lg: 20px;
+  --radius-md: 14px;
+  --radius-sm: 10px;
   
-  --font-main: 'Outfit', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  --font-display: 'Orbitron', monospace;
+  --font-main: 'Plus Jakarta Sans', 'Be Vietnam Pro', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-display: 'Plus Jakarta Sans', 'Be Vietnam Pro', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
 }
 
 * {
@@ -47,14 +47,12 @@ html, body {
   width: 100%;
   min-height: 100%;
   background-color: var(--bg-dark);
+  /* Lớp phủ siêu nhẹ để hình nền background hiển thị nổi bật, sống động & sang trọng */
   background-image: 
-    linear-gradient(rgba(10, 7, 30, 0.72), rgba(10, 7, 30, 0.85)),
-    url('assets/background.png'),
-    radial-gradient(circle at 50% 0%, #2A175B 0%, transparent 65%),
-    radial-gradient(circle at 10% 90%, #150E3E 0%, transparent 50%),
-    radial-gradient(circle at 90% 90%, #1B0F42 0%, transparent 50%);
+    linear-gradient(180deg, rgba(10, 8, 28, 0.08) 0%, rgba(10, 8, 28, 0.16) 50%, rgba(10, 8, 28, 0.32) 100%),
+    url('assets/background.png');
   background-size: cover;
-  background-position: center;
+  background-position: center top;
   background-attachment: fixed;
   color: var(--text-main);
   font-family: var(--font-main);
@@ -82,7 +80,7 @@ html, body {
 .arcade-app-wrapper {
   max-width: 1100px;
   margin: 0 auto;
-  padding: 12px 16px 28px;
+  padding: 14px 18px 32px;
   display: flex;
   flex-direction: column;
   gap: 12px;
@@ -91,48 +89,47 @@ html, body {
 /* ================= 1. HEADER BAR ================= */
 .arcade-header {
   background: var(--bg-card-subtle);
-  backdrop-filter: blur(14px);
-  -webkit-backdrop-filter: blur(14px);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
   border: 1px solid var(--border-glow);
   border-radius: var(--radius-lg);
-  padding: 12px 20px;
+  padding: 12px 22px;
   display: flex;
   justify-content: space-between;
   align-items: center;
   flex-wrap: wrap;
   gap: 12px;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.12);
 }
 
 .header-left {
   display: flex;
   flex-direction: column;
-  gap: 3px;
+  gap: 4px;
 }
 
 .arcade-badge {
   display: inline-block;
   align-self: flex-start;
   font-size: 0.72rem;
-  font-weight: 800;
-  letter-spacing: 0.08em;
-  color: #F472B6;
-  background: rgba(236, 72, 153, 0.18);
-  border: 1px solid rgba(236, 72, 153, 0.4);
-  padding: 2px 8px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: #F8FAFC;
+  background: rgba(255, 255, 255, 0.12);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  padding: 3px 10px;
   border-radius: 20px;
-  text-transform: uppercase;
+  backdrop-filter: blur(8px);
 }
 
 .arcade-title {
   font-family: var(--font-display);
-  font-size: 1.5rem;
-  font-weight: 900;
-  letter-spacing: 0.04em;
-  background: linear-gradient(135deg, #FDE047 0%, #F59E0B 50%, #FB923C 100%);
+  font-size: 1.45rem;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  background: linear-gradient(135deg, #FFFFFF 20%, #FDE047 70%, #F59E0B 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
-  text-shadow: 0 0 20px rgba(245, 158, 11, 0.3);
 }
 
 .header-right {
@@ -278,9 +275,9 @@ html, body {
   max-width: 960px;
   border-radius: var(--radius-lg);
   overflow: hidden;
-  background: #0E0A24;
-  border: 2px solid #4F46E5;
-  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.6), 0 0 24px rgba(79, 70, 229, 0.35);
+  background: #0C0A20;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.35), 0 0 0 1px rgba(255, 255, 255, 0.05);
   touch-action: none; /* Smooth mobile touch handling */
 }
 
@@ -295,14 +292,14 @@ html, body {
 .stage-overlay {
   position: absolute;
   inset: 0;
-  background: rgba(11, 8, 30, 0.88);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
+  background: rgba(10, 8, 28, 0.75);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
   display: flex;
   align-items: center;
   justify-content: center;
   z-index: 10;
-  padding: 12px;
+  padding: 16px;
   text-align: center;
   overflow-y: auto;
 }
@@ -313,43 +310,44 @@ html, body {
   max-height: 96%;
   overflow-y: auto;
   margin: auto;
-  background: rgba(22, 17, 56, 0.95);
-  border: 2px solid var(--accent-purple);
-  border-radius: 20px;
-  padding: 24px 22px;
-  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.7), 0 0 32px rgba(139, 92, 246, 0.3);
+  background: rgba(18, 14, 44, 0.88);
+  backdrop-filter: blur(28px);
+  -webkit-backdrop-filter: blur(28px);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 24px;
+  padding: 28px 24px;
+  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.45);
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 12px;
-  animation: fadeInPop 0.4s ease-out;
+  gap: 14px;
+  animation: fadeInPop 0.35s ease-out;
 }
 
 .welcome-logo-badge {
   font-size: 0.75rem;
-  font-weight: 800;
-  letter-spacing: 0.1em;
-  color: var(--accent-cyan);
-  background: rgba(6, 182, 212, 0.18);
-  border: 1px solid rgba(6, 182, 212, 0.45);
-  padding: 4px 12px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: #F8FAFC;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  padding: 4px 14px;
   border-radius: 30px;
 }
 
 .welcome-heading {
   font-family: var(--font-display);
-  font-size: 1.65rem;
-  font-weight: 900;
-  line-height: 1.25;
-  background: linear-gradient(135deg, #FFFFFF 0%, #E2E8F0 60%, #94A3B8 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
+  font-size: 1.55rem;
+  font-weight: 800;
+  line-height: 1.3;
+  color: #FFFFFF;
+  letter-spacing: -0.01em;
 }
 
 .welcome-desc {
-  font-size: 0.95rem;
+  font-size: 0.92rem;
   color: var(--text-sub);
-  line-height: 1.55;
+  line-height: 1.6;
 }
 
 .welcome-actions {
@@ -361,8 +359,8 @@ html, body {
 
 .cta-start-btn, .cta-mouse-btn {
   font-family: var(--font-main);
-  font-size: 1rem;
-  font-weight: 800;
+  font-size: 0.98rem;
+  font-weight: 700;
   padding: 14px 20px;
   border-radius: var(--radius-md);
   border: none;
@@ -377,33 +375,33 @@ html, body {
 .cta-start-btn {
   background: linear-gradient(135deg, #10B981 0%, #059669 100%);
   color: #FFFFFF;
-  box-shadow: 0 6px 20px rgba(16, 185, 129, 0.4);
+  box-shadow: 0 4px 18px rgba(16, 185, 129, 0.35);
 }
 .cta-start-btn:hover {
   transform: translateY(-2px);
-  box-shadow: 0 8px 26px rgba(16, 185, 129, 0.6);
-  filter: brightness(1.1);
+  box-shadow: 0 6px 22px rgba(16, 185, 129, 0.5);
+  filter: brightness(1.08);
 }
 
 .cta-mouse-btn {
-  background: rgba(59, 130, 246, 0.18);
-  color: #93C5FD;
-  border: 1px solid rgba(59, 130, 246, 0.4);
+  background: rgba(255, 255, 255, 0.08);
+  color: #F1F5F9;
+  border: 1px solid rgba(255, 255, 255, 0.16);
 }
 .cta-mouse-btn:hover {
-  background: rgba(59, 130, 246, 0.3);
+  background: rgba(255, 255, 255, 0.14);
   color: #FFFFFF;
   transform: translateY(-2px);
 }
 
 .camera-tip {
   font-size: 0.8rem;
-  color: #A5B4FC;
-  background: rgba(99, 102, 241, 0.12);
-  border: 1px dashed rgba(99, 102, 241, 0.35);
+  color: #CBD5E1;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.12);
   padding: 8px 14px;
   border-radius: var(--radius-sm);
-  line-height: 1.4;
+  line-height: 1.45;
 }
 
 /* Loading Overlay */
@@ -830,13 +828,15 @@ html, body {
 
 .modal-card {
   position: relative;
-  background: #161238;
-  border: 2px solid var(--accent-gold);
-  border-radius: 20px;
-  padding: 28px 24px;
+  background: rgba(18, 14, 44, 0.92);
+  backdrop-filter: blur(28px);
+  -webkit-backdrop-filter: blur(28px);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 24px;
+  padding: 30px 24px;
   max-width: 540px;
   width: 100%;
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.8), 0 0 40px rgba(245, 158, 11, 0.35);
+  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.12);
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -849,14 +849,14 @@ html, body {
   position: absolute;
   top: 14px;
   right: 14px;
-  background: rgba(239, 68, 68, 0.15);
-  border: 1px solid rgba(239, 68, 68, 0.4);
-  color: #F87171;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  color: #CBD5E1;
   width: 32px;
   height: 32px;
   border-radius: 50%;
-  font-size: 1rem;
-  font-weight: 800;
+  font-size: 0.95rem;
+  font-weight: 700;
   cursor: pointer;
   display: flex;
   align-items: center;
@@ -864,26 +864,29 @@ html, body {
   transition: all 0.2s ease;
 }
 .modal-close-x:hover {
-  background: rgba(239, 68, 68, 0.4);
+  background: rgba(239, 68, 68, 0.25);
+  color: #FFFFFF;
   transform: rotate(90deg);
 }
 
 /* Voucher Modal Specifics */
 .voucher-confetti-badge {
-  font-size: 0.8rem;
-  font-weight: 800;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
   color: #FDE047;
-  background: rgba(245, 158, 11, 0.2);
-  border: 1px solid rgba(245, 158, 11, 0.5);
+  background: rgba(245, 158, 11, 0.18);
+  border: 1px solid rgba(245, 158, 11, 0.35);
   padding: 4px 14px;
   border-radius: 20px;
 }
 
 .voucher-headline {
   font-family: var(--font-display);
-  font-size: 1.5rem;
-  font-weight: 900;
-  color: #FBBF24;
+  font-size: 1.45rem;
+  font-weight: 800;
+  color: #FFFFFF;
+  letter-spacing: -0.01em;
 }
 
 .voucher-sub {
@@ -1046,16 +1049,16 @@ html, body {
 
 /* ================= GAME OVER MODAL ================= */
 .gameover-card {
-  border-color: var(--accent-purple);
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.8), 0 0 40px rgba(139, 92, 246, 0.35);
+  border-color: rgba(255, 255, 255, 0.16);
+  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.5);
 }
 
 .gameover-ribbon {
   font-size: 0.75rem;
-  font-weight: 800;
-  color: #F472B6;
-  background: rgba(244, 114, 182, 0.18);
-  border: 1px solid rgba(244, 114, 182, 0.4);
+  font-weight: 700;
+  color: #F8FAFC;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
   padding: 3px 12px;
   border-radius: 20px;
   display: inline-block;
@@ -1064,9 +1067,10 @@ html, body {
 
 .gameover-title {
   font-family: var(--font-display);
-  font-size: 1.6rem;
-  font-weight: 900;
+  font-size: 1.5rem;
+  font-weight: 800;
   color: #FFFFFF;
+  letter-spacing: -0.01em;
 }
 
 .rank-display {
@@ -1078,23 +1082,23 @@ html, body {
 }
 
 .rank-circle {
-  width: 72px;
-  height: 72px;
+  width: 68px;
+  height: 68px;
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
   font-family: var(--font-display);
-  font-size: 2.6rem;
-  font-weight: 900;
+  font-size: 2.2rem;
+  font-weight: 800;
   color: #0F0C24;
   background: #F59E0B;
-  box-shadow: 0 0 24px #F59E0B;
+  box-shadow: 0 6px 20px rgba(245, 158, 11, 0.35);
 }
 
 .rank-title {
-  font-size: 1.1rem;
-  font-weight: 800;
+  font-size: 1.05rem;
+  font-weight: 700;
   color: #FCD34D;
 }
 
@@ -1106,8 +1110,8 @@ html, body {
 }
 
 .go-stat-box {
-  background: #0E0A24;
-  border: 1px solid #312E81;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: var(--radius-sm);
   padding: 10px;
   display: flex;
@@ -1116,8 +1120,8 @@ html, body {
 }
 
 .go-stat-lbl {
-  font-size: 0.7rem;
-  font-weight: 700;
+  font-size: 0.72rem;
+  font-weight: 600;
   color: var(--text-muted);
 }
 
@@ -1236,8 +1240,8 @@ html, body {
 /* ================= LEADERBOARD MODAL ================= */
 .leaderboard-card {
   max-width: 600px;
-  border-color: var(--accent-cyan);
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.8), 0 0 40px rgba(6, 182, 212, 0.35);
+  border-color: rgba(255, 255, 255, 0.16);
+  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.5);
 }
 
 .lb-header {
@@ -1254,7 +1258,9 @@ html, body {
 .lb-header h2 {
   font-family: var(--font-display);
   font-size: 1.45rem;
-  color: #38BDF8;
+  font-weight: 800;
+  color: #FFFFFF;
+  letter-spacing: -0.01em;
 }
 
 .lb-header p {
@@ -1266,9 +1272,9 @@ html, body {
   width: 100%;
   max-height: 280px;
   overflow-y: auto;
-  border: 1px solid #312E81;
+  border: 1px solid rgba(255, 255, 255, 0.12);
   border-radius: var(--radius-sm);
-  background: #0E0A24;
+  background: rgba(14, 10, 36, 0.6);
 }
 
 .lb-table {
