@@ -1,65 +1,82 @@
-# ⚡ BÍ KÍP ĐỔI GIAO DIỆN & SẢN PHẨM NHÃN HÀNG TRONG VÒNG 2 PHÚT
+# ⚡ HƯỚNG DẪN ĐỔI NHÃN HÀNG & HÌNH NỀN TRONG 2 PHÚT (BẢO MẬT - KHÔNG LỘ CHO NGƯỜI CHƠI)
 
-Khi được giao bất kỳ thương hiệu/sản phẩm nào vào phút chót, bạn có **3 cách siêu tốc** dưới đây để đổi toàn bộ nhận diện game:
+Để đảm bảo người chơi và khách hàng chỉ nhìn thấy giao diện game thương hiệu hoàn chỉnh, chuyên nghiệp mà **không nhìn thấy bất kỳ nút cấu hình, đổi nhãn hàng hay tải ảnh nào**, toàn bộ chức năng quản trị đã được bảo mật qua file mã nguồn và thư mục `assets/`.
 
----
-
-## 🚀 CÁCH 1: ĐỔI TRỰC TIẾP TRÊN WEB TRONG 10 GIÂY (Khuyên Dùng Nhất - Không Cần Sửa Code)
-
-Bạn có thể thao tác ngay trên điện thoại hoặc máy tính mà không cần mở VS Code hay Git:
-
-1. Mở trang web game lên, nhìn góc trên bên phải bấm nút: **`🎨 Đổi Nhãn Hàng`**.
-2. Một bảng điều khiển hiện ra:
-   - **Chọn nhanh 1 Click:** Chọn một trong các mẫu có sẵn (☕ Highlands Coffee, 🥤 Pepsi, 🔴 Coca-Cola, 🟢 Starbucks, 🟠 Shopee, 🟣 MoMo).
-   - **Hoặc tự gõ tùy ý:**
-     - Tên thương hiệu (VD: *Vinamilk*)
-     - Tiêu đề game (VD: *HỨNG SỮA TƯƠI VINAMILK*)
-     - Chọn màu chủ đạo (Color Picker)
-     - Nhập mã Voucher (VD: *VINAMILK-VIP*) và Mức giảm (*GIẢM 25%*)
-3. **Tải ảnh sản phẩm:** Bấm nút **`📁 Tải ảnh sản phẩm`** để chọn 1 hoặc nhiều ảnh sản phẩm của nhãn hàng. Game sẽ **tự động tách nền trong 1 giây**.
-4. Bấm **`💾 ÁP DỤNG NGAY`** ➔ Toàn bộ giao diện, màu sắc neon, banner, vật rơi và voucher đổi sang nhãn hàng mới tức thì!
-5. **Đặc biệt:** Bấm nút **`🔗 Tạo Link Chứa Nhãn Hàng Này`** để sao chép đường link gửi cho giám khảo/khách hàng. Khi họ mở link đó lên, game sẽ tự động mang nhận diện nhãn hàng đó ngay lập tức!
+Khi bạn nhận được nhãn hàng và sản phẩm mới vào phút chót, bạn chỉ mất **dưới 2 phút** để hoàn thành theo các bước siêu tốc sau:
 
 ---
 
-## ⚡ CÁCH 2: DÙNG ĐƯỜNG LINK THẦN TỐC (Chỉ Mất 5 Giây)
+## 🖼️ BƯỚC 1: ĐỔI HÌNH NỀN CẢ GAME & TRANG WEB (Mất 15 giây)
 
-Bạn chỉ cần thêm tham số vào đuôi link web hiện tại là game tự biến hình:
+1. Lấy ảnh phông nền/poster của nhãn hàng (ảnh ngang, định dạng PNG hoặc JPG).
+2. Đổi tên file ảnh thành: **`background.png`**.
+3. Kéo thả file đó vào thư mục **`assets/`** để ghi đè lên file cũ:
+   ```
+   assets/background.png
+   ```
+4. 👉 **Xong!** Cả trang web và khung game Canvas sẽ tự động hiển thị hình nền mới với lớp phủ neon đồng bộ.
 
-### Dùng Preset có sẵn:
+---
+
+## 🎁 BƯỚC 2: ĐỔI SẢN PHẨM RƠI TRONG GAME (Mất 30 giây)
+
+1. Chuẩn bị ảnh sản phẩm (đã xóa phông nền hoặc PNG trong suốt).
+2. Thả các ảnh sản phẩm vào thư mục:
+   ```
+   assets/products/
+   ```
+   *(Ví dụ: `assets/products/lon_nuoc.png`, `assets/products/ly_cafe.png`,...)*
+3. Mở file **`brand_config.js`**, tại biến `ACTIVE_BRAND`, cập nhật đường dẫn ảnh vào mảng `productImages`:
+   ```javascript
+   productImages: [
+     'assets/products/lon_nuoc.png',
+     'assets/products/ly_cafe.png'
+   ]
+   ```
+   *(Nếu để mảng rỗng `[]`, game sẽ dùng kho 6 sản phẩm mặc định có sẵn)*.
+
+---
+
+## 🏷️ BƯỚC 3: ĐỔI TÊN NHÃN HÀNG, MÀU SẮC & VOUCHER (Mất 30 giây)
+
+Mở file **`brand_config.js`**, sửa mục `window.ACTIVE_BRAND`:
+```javascript
+window.ACTIVE_BRAND = {
+  name: "Pepsi",                             // Tên thương hiệu
+  title: "HỨNG LON PEPSI MÁT LẠNH",          // Tiêu đề game
+  badge: "✨ PEPSI REFRESH PROMO",           // Huy hiệu góc trên
+  primaryColor: "#004B93",                   // Màu chủ đạo (Hex)
+  accentColor: "#EF4444",                    // Màu điểm nhấn
+  voucherCode: "PEPSI-SANGKHOAI",            // Mã voucher tặng người chơi
+  voucherDiscount: "TẶNG 1 LON",             // Mức ưu đãi
+  voucherTarget: 15,                         // Bắt đủ 15 điểm để mở voucher
+  voucherDesc: "Nhận ngay voucher đổi lon Pepsi tại mọi điểm bán!"
+};
+```
+
+---
+
+## 🚀 BƯỚC 4: PUSH LÊN GITHUB ĐỂ VERCEL CẬP NHẬT TỰ ĐỘNG (Mất 20 giây)
+
+Mở terminal chạy dòng lệnh sau:
+```powershell
+git add .
+git commit -m "rebrand"
+git push origin main
+```
+Sau khoảng 20-30 giây, website trên Vercel:
+👉 **https://game-smoky.vercel.app** sẽ tự động cập nhật nhận diện mới hoàn toàn!
+
+---
+
+## ⚡ MẸO NHANH: DÙNG ĐƯỜNG LINK THẦN TỐC (Không cần sửa code, chỉ 5 giây)
+
+Nếu cần demo nhanh lập tức, bạn có thể gửi link kèm preset:
 - **Highlands Coffee:** `https://game-smoky.vercel.app/?preset=highlands`
 - **Pepsi:** `https://game-smoky.vercel.app/?preset=pepsi`
 - **Coca-Cola:** `https://game-smoky.vercel.app/?preset=coca`
 - **Starbucks:** `https://game-smoky.vercel.app/?preset=starbucks`
 - **Shopee:** `https://game-smoky.vercel.app/?preset=shopee`
 - **MoMo:** `https://game-smoky.vercel.app/?preset=momo`
-
-### Hoặc tự tạo link bất kỳ:
-```
-https://game-smoky.vercel.app/?brand=Nike&title=HỨNG+GIÀY+NIKE&color=%23FF5500&voucher=NIKE50K&discount=GIẢM+50K
-```
-*(Chỉ cần gửi link này, người mở lên sẽ thấy toàn bộ game đổi sang nhãn hàng Nike mà không cần deploy lại)*
-
----
-
-## 💻 CÁCH 3: SỬA CODE CỐ ĐỊNH TRONG 30 GIÂY
-
-Nếu bạn đang ngồi trước máy tính và muốn cập nhật mã nguồn vĩnh viễn:
-
-1. Mở file **`brand_config.js`** trong thư mục dự án.
-2. Sửa thông tin trong biến `ACTIVE_BRAND`:
-   ```javascript
-   window.ACTIVE_BRAND = {
-     name: "Tên Thương Hiệu",
-     title: "HỨNG SẢN PHẨM CỦA BẠN",
-     primaryColor: "#MÃ_MÀU_HEX", // VD: #004B93 cho Pepsi, #00704A cho Starbucks
-     voucherCode: "MÃ-VOUCHER",
-     voucherDiscount: "GIẢM 30%",
-     voucherDesc: "Mô tả ưu đãi..."
-   };
-   ```
-3. Mở terminal gõ:
-   ```powershell
-   git commit -am "rebrand" ; git push origin main
-   ```
-4. Vercel sẽ tự động build lại và cập nhật sau 20 giây!
+- **Tùy biến bất kỳ qua URL:**
+  `https://game-smoky.vercel.app/?brand=Nike&title=HỨNG+GIÀY+NIKE&color=%23FF5500&voucher=NIKE50K&discount=GIẢM+50K`

@@ -354,6 +354,10 @@ class WebArcadeApp {
     this.voucherAwarded = false;
     this.voucherCode = 'CATCH15-VIP';
 
+    // Background image
+    this.bgImage = new Image();
+    this.bgImage.src = 'assets/background.png';
+
     // Products & Images
     this.productImages = [];
     this.autoRemoveBg = true;
@@ -388,23 +392,9 @@ class WebArcadeApp {
     this.headerSoundBtn = document.getElementById('header-sound-btn');
     this.headerFsBtn = document.getElementById('header-fs-btn');
     this.headerLbBtn = document.getElementById('header-leaderboard-btn');
-    this.headerBrandBtn = document.getElementById('header-brand-btn');
 
     this.arcadeTitleEl = document.querySelector('.arcade-title');
     this.arcadeBadgeEl = document.querySelector('.arcade-badge');
-
-    // Brand modal elements
-    this.brandModal = document.getElementById('brand-modal');
-    this.brandCloseX = document.getElementById('brand-close-x');
-    this.bmBrandName = document.getElementById('bm-brand-name');
-    this.bmGameTitle = document.getElementById('bm-game-title');
-    this.bmPrimaryColor = document.getElementById('bm-primary-color');
-    this.bmColorHex = document.getElementById('bm-color-hex');
-    this.bmVoucherCode = document.getElementById('bm-voucher-code');
-    this.bmVoucherDiscount = document.getElementById('bm-voucher-discount');
-    this.bmFileInput = document.getElementById('bm-file-input');
-    this.bmApplyBtn = document.getElementById('bm-apply-btn');
-    this.bmCopyLinkBtn = document.getElementById('bm-copy-link-btn');
 
     this.welcomeOverlay = document.getElementById('welcome-overlay');
     this.loadingOverlay = document.getElementById('loading-overlay');
@@ -420,9 +410,6 @@ class WebArcadeApp {
 
     this.productCountLabel = document.getElementById('product-count-label');
     this.thumbsList = document.getElementById('thumbs-list');
-    this.fileInput = document.getElementById('product-file-input');
-    this.resetDefaultBtn = document.getElementById('reset-default-products-btn');
-    this.autoRemoveBgChk = document.getElementById('auto-remove-bg-chk');
 
     this.statusMessage = document.getElementById('status-message');
 
@@ -557,13 +544,6 @@ class WebArcadeApp {
       }
     });
 
-    // Product Management
-    this.fileInput.addEventListener('change', (e) => this.handleCustomImagesUpload(e));
-    this.resetDefaultBtn.addEventListener('click', () => this.loadDefaultProducts());
-    this.autoRemoveBgChk.addEventListener('change', (e) => {
-      this.autoRemoveBg = e.target.checked;
-    });
-
     // Modals events
     this.voucherCloseX.addEventListener('click', () => this.closeVoucherModal());
     this.voucherContinueBtn.addEventListener('click', () => this.closeVoucherModal());
@@ -585,89 +565,6 @@ class WebArcadeApp {
     this.lbCloseX.addEventListener('click', () => { this.leaderboardModal.style.display = 'none'; });
     this.lbCloseBtn.addEventListener('click', () => { this.leaderboardModal.style.display = 'none'; });
     this.lbShareLinkBtn.addEventListener('click', () => this.copyGameLink());
-
-    // Brand Customizer Modal bindings
-    if (this.headerBrandBtn) {
-      this.headerBrandBtn.addEventListener('click', () => {
-        this.brandModal.style.display = 'flex';
-      });
-    }
-
-    if (this.brandCloseX) {
-      this.brandCloseX.addEventListener('click', () => {
-        this.brandModal.style.display = 'none';
-      });
-    }
-
-    // Brand Preset chips (Highlands, Pepsi, Coca, Starbucks, Shopee, MoMo)
-    document.querySelectorAll('.brand-preset-chip').forEach(btn => {
-      btn.addEventListener('click', () => {
-        const pKey = btn.getAttribute('data-preset');
-        if (window.BRAND_PRESETS && window.BRAND_PRESETS[pKey]) {
-          const p = window.BRAND_PRESETS[pKey];
-          if (this.bmBrandName) this.bmBrandName.value = p.name;
-          if (this.bmGameTitle) this.bmGameTitle.value = p.title;
-          if (this.bmPrimaryColor) this.bmPrimaryColor.value = p.primaryColor;
-          if (this.bmColorHex) this.bmColorHex.textContent = p.primaryColor;
-          if (this.bmVoucherCode) this.bmVoucherCode.value = p.voucherCode;
-          if (this.bmVoucherDiscount) this.bmVoucherDiscount.value = p.voucherDiscount;
-        }
-      });
-    });
-
-    if (this.bmPrimaryColor) {
-      this.bmPrimaryColor.addEventListener('input', (e) => {
-        if (this.bmColorHex) this.bmColorHex.textContent = e.target.value.toUpperCase();
-      });
-    }
-
-    if (this.bmFileInput) {
-      this.bmFileInput.addEventListener('change', (e) => {
-        this.handleCustomImagesUpload(e);
-      });
-    }
-
-    if (this.bmApplyBtn) {
-      this.bmApplyBtn.addEventListener('click', () => {
-        const brandName = (this.bmBrandName.value || 'Nhãn Hàng').trim();
-        const gameTitle = (this.bmGameTitle.value || 'HỨNG SẢN PHẨM').trim();
-        const primaryCol = this.bmPrimaryColor.value || '#4F46E5';
-        const vCode = (this.bmVoucherCode.value || 'PROMO-VIP').trim();
-        const vDiscount = (this.bmVoucherDiscount.value || 'GIẢM 20%').trim();
-
-        const newCfg = {
-          name: brandName,
-          title: gameTitle,
-          badge: `✨ ${brandName.toUpperCase()} PROMO`,
-          primaryColor: primaryCol,
-          accentColor: '#F59E0B',
-          voucherCode: vCode,
-          voucherDiscount: vDiscount,
-          voucherTarget: this.voucherTarget,
-          voucherDesc: `Săn được voucher quà tặng đặc biệt từ ${brandName}!`
-        };
-
-        localStorage.setItem('arcade_brand_config', JSON.stringify(newCfg));
-        this.applyBrandConfig(newCfg);
-        this.brandModal.style.display = 'none';
-        this.setStatus(`✓ Đã áp dụng chiến dịch: ${newCfg.name}! Bắt đầu chơi ngay.`);
-      });
-    }
-
-    if (this.bmCopyLinkBtn) {
-      this.bmCopyLinkBtn.addEventListener('click', () => {
-        const brand = encodeURIComponent((this.bmBrandName.value || 'Nhãn Hàng').trim());
-        const title = encodeURIComponent((this.bmGameTitle.value || 'HỨNG SẢN PHẨM').trim());
-        const color = encodeURIComponent(this.bmPrimaryColor.value);
-        const voucher = encodeURIComponent((this.bmVoucherCode.value || 'PROMO-VIP').trim());
-        const discount = encodeURIComponent((this.bmVoucherDiscount.value || 'GIẢM 20%').trim());
-
-        const shareUrl = `${window.location.origin}${window.location.pathname}?brand=${brand}&title=${title}&color=${color}&voucher=${voucher}&discount=${discount}`;
-        navigator.clipboard.writeText(shareUrl).then(() => {
-          alert(`✓ Đã sao chép đường link chứa sẵn nhãn hàng ${decodeURIComponent(brand)}!\nBạn chỉ cần gửi link này cho mọi người, khi họ mở web lên thì toàn bộ giao diện, màu sắc và voucher sẽ tự đổi sang nhãn hàng của bạn ngay lập tức!`);
-        });
-      });
-    }
   }
 
   // ================= BRAND INITIALIZATION & APPLY =================
@@ -745,19 +642,16 @@ class WebArcadeApp {
 
     const voucherSubEl = document.querySelector('.voucher-sub');
     if (voucherSubEl && cfg.voucherDesc) voucherSubEl.textContent = cfg.voucherDesc;
-
-    if (this.bmBrandName) this.bmBrandName.value = cfg.name;
-    if (this.bmGameTitle) this.bmGameTitle.value = cfg.title;
-    if (this.bmPrimaryColor) this.bmPrimaryColor.value = cfg.primaryColor;
-    if (this.bmColorHex) this.bmColorHex.textContent = cfg.primaryColor;
-    if (this.bmVoucherCode) this.bmVoucherCode.value = this.voucherCode;
-    if (this.bmVoucherDiscount) this.bmVoucherDiscount.value = cfg.voucherDiscount || 'GIẢM 20%';
   }
 
-  // Load 6 Default Images
+  // Load Default Images or Brand Configured Images
   async loadDefaultProducts() {
     this.productImages = [];
-    const promises = DEFAULT_PRODUCT_URLS.map((url) => {
+    const sourceUrls = (this.currentBrand && Array.isArray(this.currentBrand.productImages) && this.currentBrand.productImages.length > 0)
+      ? this.currentBrand.productImages
+      : DEFAULT_PRODUCT_URLS;
+
+    const promises = sourceUrls.map((url) => {
       return new Promise((resolve) => {
         const img = new Image();
         img.crossOrigin = 'anonymous';
@@ -772,10 +666,10 @@ class WebArcadeApp {
     this.renderThumbnails();
   }
 
-  // Render Product Thumbnails Tray
+  // Render Product Thumbnails Tray (View Only)
   renderThumbnails() {
     this.thumbsList.innerHTML = '';
-    this.productCountLabel.textContent = `(${this.productImages.length} ảnh)`;
+    this.productCountLabel.textContent = `(${this.productImages.length} sản phẩm)`;
 
     this.productImages.forEach((item, idx) => {
       const thumb = document.createElement('div');
@@ -785,19 +679,6 @@ class WebArcadeApp {
       const img = document.createElement('img');
       img.src = item.url;
       thumb.appendChild(img);
-
-      if (this.productImages.length > 1) {
-        const delBtn = document.createElement('button');
-        delBtn.className = 'thumb-delete-btn';
-        delBtn.innerHTML = '✕';
-        delBtn.title = 'Xóa ảnh này';
-        delBtn.addEventListener('click', (e) => {
-          e.stopPropagation();
-          this.productImages.splice(idx, 1);
-          this.renderThumbnails();
-        });
-        thumb.appendChild(delBtn);
-      }
 
       this.thumbsList.appendChild(thumb);
     });
@@ -1116,23 +997,43 @@ class WebArcadeApp {
     };
   }
 
+  // Draw Background Image on Canvas if loaded
+  drawBackgroundToCanvas() {
+    if (this.bgImage && this.bgImage.complete && this.bgImage.naturalWidth > 0) {
+      const bw = this.bgImage.naturalWidth;
+      const bh = this.bgImage.naturalHeight;
+      const scale = Math.max(W / bw, H / bh);
+      const sw = W / scale;
+      const sh = H / scale;
+      const sx = (bw - sw) / 2;
+      const sy = (bh - sh) / 2;
+      this.ctx.drawImage(this.bgImage, sx, sy, sw, sh, 0, 0, W, H);
+      this.ctx.fillStyle = 'rgba(10, 7, 30, 0.45)';
+      this.ctx.fillRect(0, 0, W, H);
+      return true;
+    }
+    return false;
+  }
+
   // Render Idle Background when game not running
   renderIdle(timestamp) {
-    // Subtle cyberpunk background grid
-    this.ctx.fillStyle = '#0F0B26';
-    this.ctx.fillRect(0, 0, W, H);
+    if (!this.drawBackgroundToCanvas()) {
+      // Subtle cyberpunk background grid
+      this.ctx.fillStyle = '#0F0B26';
+      this.ctx.fillRect(0, 0, W, H);
+    }
 
     // Glowing arcade circles
     const pulse = Math.sin(timestamp * 0.003) * 15;
     this.ctx.beginPath();
     this.ctx.arc(W / 2, H / 2, 160 + pulse, 0, Math.PI * 2);
-    this.ctx.strokeStyle = 'rgba(139, 92, 246, 0.15)';
+    this.ctx.strokeStyle = 'rgba(139, 92, 246, 0.25)';
     this.ctx.lineWidth = 3;
     this.ctx.stroke();
 
     this.ctx.beginPath();
     this.ctx.arc(W / 2, H / 2, 220 + pulse * 1.5, 0, Math.PI * 2);
-    this.ctx.strokeStyle = 'rgba(6, 182, 212, 0.12)';
+    this.ctx.strokeStyle = 'rgba(6, 182, 212, 0.2)';
     this.ctx.lineWidth = 2;
     this.ctx.stroke();
   }
@@ -1154,8 +1055,10 @@ class WebArcadeApp {
     // 1. INPUT PROCESSING
     if (this.useMouse) {
       // Draw background backdrop
-      this.ctx.fillStyle = '#110D2C';
-      this.ctx.fillRect(0, 0, W, H);
+      if (!this.drawBackgroundToCanvas()) {
+        this.ctx.fillStyle = '#110D2C';
+        this.ctx.fillRect(0, 0, W, H);
+      }
 
       if (this.mousePos) {
         const mx = this.mousePos.x;

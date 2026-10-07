@@ -48,9 +48,14 @@ html, body {
   min-height: 100%;
   background-color: var(--bg-dark);
   background-image: 
+    linear-gradient(rgba(10, 7, 30, 0.72), rgba(10, 7, 30, 0.85)),
+    url('assets/background.png'),
     radial-gradient(circle at 50% 0%, #2A175B 0%, transparent 65%),
     radial-gradient(circle at 10% 90%, #150E3E 0%, transparent 50%),
     radial-gradient(circle at 90% 90%, #1B0F42 0%, transparent 50%);
+  background-size: cover;
+  background-position: center;
+  background-attachment: fixed;
   color: var(--text-main);
   font-family: var(--font-main);
   line-height: 1.5;
