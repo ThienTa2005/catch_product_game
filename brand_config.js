@@ -85,5 +85,5 @@ window.ACTIVE_BRAND = {
   voucherDiscount: "GIẢM 20%",
   voucherTarget: 10,
   voucherDesc: "Chúc mừng bạn đã xuất sắc săn được mã Voucher ưu đãi độc quyền!",
-  productImages: ["assets/products/glazed_donut.png", "assets/products/soda_can.png"] // Nếu để rỗng sẽ dùng các sản phẩm trong assets/products/ và tự động xóa nền
+  productImages: [] // Nếu để rỗng sẽ dùng các sản phẩm trong assets/products/ và tự động xóa nền
 };
