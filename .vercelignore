@@ -1,0 +1,8 @@
+# Ignore Python backend scripts & dependencies from Vercel deployment
+# (This ensures Vercel serves the repository as a fast static web app and doesn't try to build Python Serverless functions)
+*.py
+requirements.txt
+*.bat
+.venv/
+__pycache__/
+highscore.json
