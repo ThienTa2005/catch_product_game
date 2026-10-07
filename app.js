@@ -908,6 +908,29 @@ class WebArcadeApp {
     requestAnimationFrame((t) => this.tick(t));
   }
 
+  // Map raw MediaPipe landmarks to canvas with exact object-fit: cover center-crop alignment
+  videoToCanvas(lm) {
+    const vw = (this.video && this.video.videoWidth) ? this.video.videoWidth : W;
+    const vh = (this.video && this.video.videoHeight) ? this.video.videoHeight : H;
+
+    const scale = Math.max(W / vw, H / vh);
+    const sw = W / scale;
+    const sh = H / scale;
+    const sx = Math.max(0, (vw - sw) / 2);
+    const sy = Math.max(0, (vh - sh) / 2);
+
+    const rawX = lm.x * vw;
+    const rawY = lm.y * vh;
+
+    const cropNormX = (rawX - sx) / sw;
+    const cropNormY = (rawY - sy) / sh;
+
+    return {
+      x: (1.0 - cropNormX) * W, // Mirrored horizontally
+      y: cropNormY * H
+    };
+  }
+
   // Render Idle Background when game not running
   renderIdle(timestamp) {
     // Subtle cyberpunk background grid
@@ -955,12 +978,22 @@ class WebArcadeApp {
         hands.push({ left: mx - 75, top: my - 12, right: mx + 75, bottom: my + 16 });
       }
     } else {
-      // Camera Video Frame Render (Mirrored selfie view)
+      // Camera Video Frame Render (Mirrored selfie view with object-fit: cover)
       if (this.video && this.video.readyState >= 2) {
+        const vw = this.video.videoWidth || W;
+        const vh = this.video.videoHeight || H;
+
+        // Calculate object-fit: cover crop to preserve natural face proportions
+        const scale = Math.max(W / vw, H / vh);
+        const sw = W / scale;
+        const sh = H / scale;
+        const sx = Math.max(0, (vw - sw) / 2);
+        const sy = Math.max(0, (vh - sh) / 2);
+
         this.ctx.save();
         this.ctx.translate(W, 0);
         this.ctx.scale(-1, 1);
-        this.ctx.drawImage(this.video, 0, 0, W, H);
+        this.ctx.drawImage(this.video, sx, sy, sw, sh, 0, 0, W, H);
         this.ctx.restore();
 
         // Darken camera slightly for vibrant neon contrast
@@ -976,13 +1009,7 @@ class WebArcadeApp {
                 this.handLandmarksList.push(landmarks);
 
                 // Palm + finger roots: points [0, 5, 9, 13, 17]
-                // Mirrored coordinates: (1.0 - lm.x)
-                const palmPoints = [0, 5, 9, 13, 17].map(i => {
-                  return {
-                    x: (1.0 - landmarks[i].x) * W,
-                    y: landmarks[i].y * H
-                  };
-                });
+                const palmPoints = [0, 5, 9, 13, 17].map(i => this.videoToCanvas(landmarks[i]));
 
                 const xs = palmPoints.map(p => p.x);
                 const ys = palmPoints.map(p => p.y);
@@ -1052,22 +1079,19 @@ class WebArcadeApp {
           this.ctx.lineWidth = 2;
 
           for (const [p1, p2] of connections) {
-            const x1 = (1.0 - lms[p1].x) * W;
-            const y1 = lms[p1].y * H;
-            const x2 = (1.0 - lms[p2].x) * W;
-            const y2 = lms[p2].y * H;
+            const pt1 = this.videoToCanvas(lms[p1]);
+            const pt2 = this.videoToCanvas(lms[p2]);
             this.ctx.beginPath();
-            this.ctx.moveTo(x1, y1);
-            this.ctx.lineTo(x2, y2);
+            this.ctx.moveTo(pt1.x, pt1.y);
+            this.ctx.lineTo(pt2.x, pt2.y);
             this.ctx.stroke();
           }
 
           // Tip & Palm Dots
           [4, 8, 12, 16, 20, 0, 9].forEach((idx) => {
-            const px = (1.0 - lms[idx].x) * W;
-            const py = lms[idx].y * H;
+            const pt = this.videoToCanvas(lms[idx]);
             this.ctx.beginPath();
-            this.ctx.arc(px, py, 4.5, 0, Math.PI * 2);
+            this.ctx.arc(pt.x, pt.y, 4.5, 0, Math.PI * 2);
             this.ctx.fillStyle = [4, 8, 12, 16, 20].includes(idx) ? '#F472B6' : '#34D399';
             this.ctx.strokeStyle = '#FFFFFF';
             this.ctx.lineWidth = 1.5;

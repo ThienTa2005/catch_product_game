@@ -284,21 +284,26 @@ html, body {
   align-items: center;
   justify-content: center;
   z-index: 10;
-  padding: 20px;
+  padding: 12px;
   text-align: center;
+  overflow-y: auto;
 }
 
 .welcome-box {
-  max-width: 620px;
+  max-width: 580px;
+  width: 100%;
+  max-height: 96%;
+  overflow-y: auto;
+  margin: auto;
   background: rgba(22, 17, 56, 0.95);
   border: 2px solid var(--accent-purple);
   border-radius: 20px;
-  padding: 32px 28px;
+  padding: 24px 22px;
   box-shadow: 0 16px 48px rgba(0, 0, 0, 0.7), 0 0 32px rgba(139, 92, 246, 0.3);
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 16px;
+  gap: 12px;
   animation: fadeInPop 0.4s ease-out;
 }
 
@@ -1368,28 +1373,212 @@ html, body {
 /* ================= RESPONSIVE ADJUSTMENTS ================= */
 @media (max-width: 768px) {
   .arcade-app-wrapper {
-    padding: 8px;
+    padding: 6px 8px 24px;
     gap: 8px;
+    width: 100%;
   }
   
   .arcade-header {
-    padding: 10px 14px;
+    padding: 8px 12px;
+    gap: 8px;
   }
   
+  .header-left {
+    width: 100%;
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+  }
+
   .arcade-title {
-    font-size: 1.25rem;
+    font-size: 1.2rem;
+  }
+
+  .arcade-badge {
+    font-size: 0.65rem;
+    padding: 2px 6px;
   }
   
+  .header-right {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .header-right .stat-card {
+    flex: 1;
+    padding: 5px 8px;
+    min-width: 120px;
+  }
+
   .header-buttons {
+    width: 100%;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 6px;
+  }
+
+  .fullscreen-btn {
+    display: none; /* Hide F11 on mobile screens */
+  }
+
+  .hdr-btn {
+    font-size: 0.78rem;
+    padding: 7px 8px;
+    justify-content: center;
+  }
+
+  .canvas-container {
+    border-radius: 12px;
+    min-height: 220px;
+  }
+
+  .stage-overlay {
+    padding: 6px;
+    align-items: flex-start; /* Never clip the top on mobile screens */
+  }
+
+  .welcome-box {
+    padding: 12px 14px;
+    gap: 8px;
+    border-radius: 14px;
+    max-height: 98%;
+  }
+
+  .welcome-logo-badge {
+    font-size: 0.65rem;
+    padding: 2px 8px;
+  }
+
+  .welcome-heading {
+    font-size: 1.05rem;
+    line-height: 1.25;
+  }
+
+  .welcome-desc {
+    font-size: 0.75rem;
+    line-height: 1.35;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+
+  .welcome-actions {
+    gap: 6px;
+    width: 100%;
+  }
+
+  .cta-start-btn, .cta-mouse-btn {
+    font-size: 0.8rem;
+    padding: 9px 10px;
+    gap: 6px;
+  }
+
+  .camera-tip {
+    font-size: 0.66rem;
+    padding: 5px 8px;
+    line-height: 1.25;
+  }
+
+  .controls-bar {
+    padding: 8px 10px;
+    gap: 8px;
+  }
+
+  .controls-left {
+    width: 100%;
+    display: grid;
+    grid-template-columns: 1.2fr 1fr;
+    gap: 6px;
+  }
+
+  .start-btn, .pause-btn {
+    width: 100%;
+    font-size: 0.85rem;
+    padding: 9px 8px;
+    text-align: center;
+    justify-content: center;
+  }
+
+  .control-group {
+    grid-column: span 2;
     width: 100%;
     justify-content: space-between;
   }
-  
-  .controls-bar {
-    padding: 8px 12px;
+
+  .ctrl-select {
+    flex: 1;
+    font-size: 0.82rem;
   }
-  
-  .welcome-heading {
-    font-size: 1.3rem;
+
+  .ctrl-chk {
+    grid-column: span 2;
+    font-size: 0.8rem;
+  }
+
+  .controls-right {
+    width: 100%;
+  }
+
+  .settings-toggle-btn {
+    width: 100%;
+    text-align: center;
+  }
+
+  .inventory-tray {
+    padding: 6px 10px;
+    gap: 8px;
+  }
+
+  .tray-info {
+    width: 100%;
+    justify-content: space-between;
+  }
+
+  .thumbs-scroller {
+    width: 100%;
+  }
+
+  .thumb-item {
+    width: 38px;
+    height: 38px;
+  }
+
+  .thumb-item img {
+    width: 26px;
+    height: 26px;
+  }
+
+  .tray-actions {
+    width: 100%;
+    justify-content: space-between;
+  }
+
+  .tray-btn {
+    font-size: 0.75rem;
+    padding: 5px 8px;
+  }
+
+  .modal-card {
+    padding: 18px 16px;
+    gap: 10px;
+    max-width: 95%;
+  }
+
+  .voucher-ticket {
+    flex-direction: column;
+  }
+
+  .ticket-left {
+    min-width: 100%;
+    padding: 10px;
+  }
+
+  .ticket-divider {
+    width: 100%;
+    height: 2px;
   }
 }
