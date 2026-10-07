@@ -129,9 +129,12 @@ class App:
         self.shake_intensity = 0.0
 
         self.photos: list[ImageTk.PhotoImage] = []
+        self.base_pil_squares: list[Image.Image] = []
+        self.rotated_photos_cache: dict = {}
         self.thumb_photos: list[ImageTk.PhotoImage] = []
         self.images: list[Image.Image] = []
         self.paths: list[str] = []
+        self.game_over_sound_played = False
 
         self.jobs = queue.Queue()
         self.frame_id = 0
@@ -443,6 +446,7 @@ class App:
     def open_voucher_modal(self):
         self.show_voucher_modal = True
         self.paused = True
+        sound_manager.pause_bgm()
         sound_manager.play('voucher')
 
     def share_voucher(self, open_network=None):
@@ -505,6 +509,7 @@ class App:
             if cx - 180 <= ex <= cx + 40 and y1 + 360 <= ey <= y1 + 402:
                 self.show_voucher_modal = False
                 self.paused = False
+                sound_manager.resume_bgm()
                 self.root.config(cursor='arrow')
                 return
 
@@ -675,6 +680,8 @@ class App:
 
     def prepare_game_photos(self):
         self.photos = []
+        self.base_pil_squares = []
+        self.rotated_photos_cache = {}
         sz = self.game.size
         for original in self.images:
             im = original.copy()
@@ -683,7 +690,27 @@ class App:
             ox = (sz - im.width) // 2
             oy = (sz - im.height) // 2
             canvas_square.alpha_composite(im, (ox, oy))
+            self.base_pil_squares.append(canvas_square)
             self.photos.append(ImageTk.PhotoImage(canvas_square))
+
+    def get_rotated_photo(self, img_idx: int, angle_deg: float):
+        if not hasattr(self, 'base_pil_squares') or not self.base_pil_squares:
+            return self.photos[img_idx % len(self.photos)]
+        idx = img_idx % len(self.base_pil_squares)
+        snap_angle = round(angle_deg / 5.0) * 5 % 360
+        cache_key = (idx, snap_angle)
+        if cache_key in self.rotated_photos_cache:
+            return self.rotated_photos_cache[cache_key]
+        
+        base_img = self.base_pil_squares[idx]
+        if snap_angle == 0:
+            photo = ImageTk.PhotoImage(base_img)
+        else:
+            rot_img = base_img.rotate(-snap_angle, resample=Image.Resampling.BILINEAR, expand=False)
+            photo = ImageTk.PhotoImage(rot_img)
+            
+        self.rotated_photos_cache[cache_key] = photo
+        return photo
 
     def draw_idle(self):
         self.canvas.delete('all')
@@ -781,7 +808,9 @@ class App:
 
         self.prepare_game_photos()
 
+        self.game_over_sound_played = False
         sound_manager.play('countdown')
+        sound_manager.play_bgm()
 
         if self.use_mouse:
             self.running = True
@@ -850,7 +879,12 @@ class App:
     def pause(self):
         if self.running and not self.game.finished:
             self.paused = not self.paused
-            self.status.set('Tạm dừng trò chơi.' if self.paused else 'Tiếp tục chơi!')
+            if self.paused:
+                sound_manager.pause_bgm()
+                self.status.set('Tạm dừng trò chơi.')
+            else:
+                sound_manager.resume_bgm()
+                self.status.set('Tiếp tục chơi!')
 
     def trigger_shake(self, intensity=4.0, duration=0.15):
         self.shake_intensity = intensity
@@ -1073,22 +1107,26 @@ class App:
             self.show_voucher_modal = True
             self.paused = True
             self.voucher_btn.config(text='🎁 VOUCHER: ĐÃ MỞ!', bg='#F59E0B')
+            sound_manager.pause_bgm()
             sound_manager.play('voucher')
             self.spawn_confetti(W / 2, H / 2, is_combo=True)
             self.status.set(f'🎉 XUẤT SẮC! Bạn đã đạt {self.voucher_target} điểm và mở khóa VOUCHER ĐẶC BIỆT! Hãy chia sẻ để sử dụng!')
 
-        # Draw Falling Product Items
+        # Draw Falling Product Items with varied orientations (horizontal, vertical, diagonal, tumble)
         for item in self.game.items:
             img_idx = item.image % len(self.photos)
             item_x = item.x + shake_dx
             item_y = item.y + shake_dy
+            cx = item_x + item.size / 2
+            cy = item_y + item.size / 2
 
             # Subtle drop shadow
-            self.canvas.create_oval(item_x + 8, item_y + item.size - 4,
-                                   item_x + item.size - 8, item_y + item.size + 8,
+            self.canvas.create_oval(item_x + 6, item_y + item.size - 4,
+                                   item_x + item.size - 6, item_y + item.size + 8,
                                    fill='#0A081D', outline='')
 
-            self.canvas.create_image(item_x, item_y, image=self.photos[img_idx], anchor='nw')
+            photo = self.get_rotated_photo(img_idx, item.angle)
+            self.canvas.create_image(cx, cy, image=photo, anchor='center')
 
         # Shockwaves rendering
         self.shockwaves = [sw for sw in self.shockwaves if sw.update(dt)]
@@ -1178,8 +1216,13 @@ class App:
             self.render_voucher_modal(now)
 
         # ================= GAME OVER / VICTORY OVERLAY =================
-        if self.game.finished and not self.show_voucher_modal:
-            self.render_game_over_overlay()
+        if self.game.finished:
+            if not self.game_over_sound_played:
+                self.game_over_sound_played = True
+                sound_manager.stop_bgm()
+                sound_manager.play('gameover')
+            if not self.show_voucher_modal:
+                self.render_game_over_overlay()
 
     def render_voucher_modal(self, now: float):
         # 1. Dark backdrop curtain
@@ -1347,6 +1390,7 @@ class App:
 
     def close(self):
         self.closed = True
+        sound_manager.close()
         self.release()
         while not self.jobs.empty():
             res = self.jobs.get_nowait()

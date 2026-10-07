@@ -1,5 +1,6 @@
 """Game rules independent of camera/UI; coordinates measured in pixels."""
 from dataclasses import dataclass
+import math
 import random
 
 @dataclass
@@ -10,6 +11,10 @@ class Item:
     speed: float
     image: int
     wobble_phase: float = 0.0
+    angle: float = 0.0
+    base_angle: float = 0.0
+    rot_speed: float = 0.0
+    orientation_mode: str = 'vertical'
 
 def catches(item, old_y, hands):
     # Swept bottom edge avoids skipping a hand at low frame rates.
@@ -62,13 +67,37 @@ class Game:
         self.elapsed += dt
         self.spawn_in -= dt
         if self.spawn_in <= 0:
+            # Vary orientations: Vertical (dọc), Horizontal (ngang), Diagonal (chéo), Tumble (lẫn lộn xoay)
+            orient_modes = ['vertical', 'horizontal', 'diagonal_left', 'diagonal_right', 'tumble']
+            mode = random.choice(orient_modes)
+            
+            if mode == 'vertical':
+                base_angle = random.choice([0.0, 180.0])
+                rot_speed = random.uniform(-15.0, 15.0)
+            elif mode == 'horizontal':
+                base_angle = random.choice([90.0, 270.0, -90.0])
+                rot_speed = random.uniform(-20.0, 20.0)
+            elif mode == 'diagonal_left':
+                base_angle = random.choice([-35.0, -45.0, -55.0, 135.0])
+                rot_speed = random.uniform(-25.0, 25.0)
+            elif mode == 'diagonal_right':
+                base_angle = random.choice([35.0, 45.0, 55.0, 225.0])
+                rot_speed = random.uniform(-25.0, 25.0)
+            else: # tumble (xoay lẫn lộn)
+                base_angle = random.uniform(0.0, 360.0)
+                rot_speed = random.choice([-1.0, 1.0]) * random.uniform(60.0, 120.0)
+            
             self.items.append(Item(
                 random.uniform(0, max(0, self.width - self.size)),
                 -self.size,
                 self.size,
                 self.speed * random.uniform(0.9, 1.1),
                 random.randrange(self.images),
-                random.uniform(0, 6.28)
+                random.uniform(0, 6.28),
+                base_angle,
+                base_angle,
+                rot_speed,
+                mode
             ))
             self.spawn_in += self.interval
         events, keep = [], []
@@ -76,6 +105,14 @@ class Game:
             old_y = item.y
             item.y += item.speed * dt
             item.wobble_phase += dt * 3.0
+            
+            # Dynamic angle update based on orientation mode
+            if item.orientation_mode == 'tumble':
+                item.angle = (item.angle + item.rot_speed * dt) % 360.0
+            else:
+                sway = math.sin(item.wobble_phase) * 10.0
+                item.angle = (item.base_angle + sway) % 360.0
+
             if catches(item, old_y, hands):
                 self.combo += 1
                 if self.combo > self.max_combo:

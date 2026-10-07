@@ -45,8 +45,15 @@ class SoundManager {
     soundNames.forEach(name => {
       const audio = new Audio(`assets/sounds/${name}.wav`);
       audio.preload = 'auto';
+      if (name === 'catch') audio.volume = 1.0; // scoring sound max volume
       this.cache[name] = audio;
     });
+
+    this.bgmAudio = new Audio('assets/sounds/bgm.wav');
+    this.bgmAudio.loop = true;
+    this.bgmAudio.volume = 0.28; // moderate, balanced BGM volume
+    this.bgmPlaying = false;
+    this.bgmPaused = false;
   }
 
   initContext() {
@@ -62,8 +69,55 @@ class SoundManager {
   toggle() {
     this.enabled = !this.enabled;
     localStorage.setItem('arcade_sound_enabled', this.enabled);
-    if (this.enabled) this.play('catch');
+    if (!this.enabled) {
+      this.pauseBgm();
+    } else {
+      if (this.bgmPlaying) {
+        this.resumeBgm();
+      }
+      this.play('catch');
+    }
     return this.enabled;
+  }
+
+  playBgm() {
+    if (!this.enabled) return;
+    this.initContext();
+    this.bgmPlaying = true;
+    this.bgmPaused = false;
+    try {
+      this.bgmAudio.currentTime = 0;
+      const prom = this.bgmAudio.play();
+      if (prom) prom.catch(() => {});
+    } catch (e) {}
+  }
+
+  pauseBgm() {
+    if (!this.bgmAudio) return;
+    try {
+      this.bgmAudio.pause();
+      this.bgmPaused = true;
+    } catch (e) {}
+  }
+
+  resumeBgm() {
+    if (!this.enabled || !this.bgmAudio || !this.bgmPlaying) return;
+    this.initContext();
+    this.bgmPaused = false;
+    try {
+      const prom = this.bgmAudio.play();
+      if (prom) prom.catch(() => {});
+    } catch (e) {}
+  }
+
+  stopBgm() {
+    this.bgmPlaying = false;
+    this.bgmPaused = false;
+    if (!this.bgmAudio) return;
+    try {
+      this.bgmAudio.pause();
+      this.bgmAudio.currentTime = 0;
+    } catch (e) {}
   }
 
   play(name) {
@@ -74,6 +128,7 @@ class SoundManager {
     if (audio) {
       try {
         audio.currentTime = 0;
+        if (name === 'catch') audio.volume = 1.0;
         const prom = audio.play();
         if (prom) prom.catch(() => this.playSynth(name));
       } catch (e) {
@@ -96,12 +151,27 @@ class SoundManager {
       gain.connect(ctx.destination);
 
       if (type === 'catch') {
-        osc.frequency.setValueAtTime(587.33, now); // D5
-        osc.frequency.exponentialRampToValueAtTime(880, now + 0.12); // A5
-        gain.gain.setValueAtTime(0.25, now);
-        gain.gain.exponentialRampToValueAtTime(0.01, now + 0.12);
+        // High, crisp, loud arcade coin ping
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(1046, now); // C6
+        osc.frequency.exponentialRampToValueAtTime(2093, now + 0.12); // C7
+        gain.gain.setValueAtTime(0.75, now); // Louder sound!
+        gain.gain.exponentialRampToValueAtTime(0.01, now + 0.16);
         osc.start(now);
-        osc.stop(now + 0.12);
+        osc.stop(now + 0.16);
+
+        // Bright sparkling overtone
+        const osc2 = ctx.createOscillator();
+        const gain2 = ctx.createGain();
+        osc2.type = 'sine';
+        osc2.frequency.setValueAtTime(2637, now); // E7
+        osc2.connect(gain2);
+        gain2.connect(ctx.destination);
+        gain2.gain.setValueAtTime(0.35, now);
+        gain2.gain.exponentialRampToValueAtTime(0.01, now + 0.14);
+        osc2.start(now);
+        osc2.stop(now + 0.14);
+      }
       } else if (type === 'combo' || type === 'fever') {
         osc.type = 'triangle';
         osc.frequency.setValueAtTime(523.25, now);
@@ -201,13 +271,17 @@ class FloatingText {
 
 // ================= GAME ENGINE =================
 class Item {
-  constructor(x, y, size, speed, imageIdx, wobblePhase = 0) {
+  constructor(x, y, size, speed, imageIdx, wobblePhase = 0, angle = 0, baseAngle = 0, rotSpeed = 0, mode = 'vertical') {
     this.x = x;
     this.y = y;
     this.size = size;
     this.speed = speed;
     this.image = imageIdx;
     this.wobblePhase = wobblePhase;
+    this.angle = angle;
+    this.baseAngle = baseAngle;
+    this.rotSpeed = rotSpeed;
+    this.mode = mode;
   }
 }
 
@@ -283,7 +357,31 @@ class Engine {
       const randSpeed = this.speed * (0.9 + Math.random() * 0.2);
       const randImg = Math.floor(Math.random() * this.images);
       const randPhase = Math.random() * Math.PI * 2;
-      this.items.push(new Item(randX, -this.size, this.size, randSpeed, randImg, randPhase));
+
+      // Random orientation: Vertical (dọc), Horizontal (ngang), Diagonal (chéo), Tumble (lẫn lộn xoay)
+      const modes = ['vertical', 'horizontal', 'diagonal_left', 'diagonal_right', 'tumble'];
+      const mode = modes[Math.floor(Math.random() * modes.length)];
+      let baseAngle = 0;
+      let rotSpeed = 0;
+
+      if (mode === 'vertical') {
+        baseAngle = Math.random() < 0.5 ? 0 : Math.PI; // đứng thẳng hoặc lộn ngược
+        rotSpeed = (Math.random() - 0.5) * 0.3;
+      } else if (mode === 'horizontal') {
+        baseAngle = Math.random() < 0.5 ? Math.PI / 2 : -Math.PI / 2; // ngang trái hoặc ngang phải (90° hoặc -90°)
+        rotSpeed = (Math.random() - 0.5) * 0.4;
+      } else if (mode === 'diagonal_left') {
+        baseAngle = -(Math.PI / 4) + (Math.random() - 0.5) * 0.25; // chéo trái ~ -45°
+        rotSpeed = (Math.random() - 0.5) * 0.5;
+      } else if (mode === 'diagonal_right') {
+        baseAngle = (Math.PI / 4) + (Math.random() - 0.5) * 0.25; // chéo phải ~ 45°
+        rotSpeed = (Math.random() - 0.5) * 0.5;
+      } else { // tumble (lẫn lộn xoay tròn)
+        baseAngle = Math.random() * Math.PI * 2;
+        rotSpeed = (Math.random() < 0.5 ? 1 : -1) * (1.2 + Math.random() * 1.5);
+      }
+
+      this.items.push(new Item(randX, -this.size, this.size, randSpeed, randImg, randPhase, baseAngle, baseAngle, rotSpeed, mode));
       this.spawnIn += this.interval;
     }
 
@@ -294,6 +392,14 @@ class Engine {
       const oldY = item.y;
       item.y += item.speed * dt;
       item.wobblePhase += dt * 3.0;
+
+      // Dynamic orientation update
+      if (item.mode === 'tumble') {
+        item.angle += item.rotSpeed * dt;
+      } else {
+        const sway = Math.sin(item.wobblePhase) * 0.16;
+        item.angle = item.baseAngle + sway;
+      }
 
       if (checkCatches(item, oldY, hands)) {
         this.combo += 1;
@@ -934,6 +1040,7 @@ class WebArcadeApp {
     this.useMouse = Boolean(this.modeSelect && this.modeSelect.value === 'mouse');
 
     this.sound.play('countdown');
+    this.sound.playBgm();
 
     if (this.useMouse) {
       this.running = true;
@@ -1049,6 +1156,11 @@ class WebArcadeApp {
   togglePause() {
     if (!this.running || this.engine.finished) return;
     this.paused = !this.paused;
+    if (this.paused) {
+      this.sound.pauseBgm();
+    } else {
+      this.sound.resumeBgm();
+    }
     this.mainPauseBtn.textContent = this.paused ? '▶ Tiếp tục (Space)' : '⏸ Tạm dừng (Space)';
     this.setStatus(this.paused ? '⏸ Trò chơi đang tạm dừng.' : '▶ Tiếp tục ván đấu!');
   }
@@ -1400,22 +1512,28 @@ class WebArcadeApp {
       this.openVoucherModal();
     }
 
-    // 4. DRAW FALLING ITEMS
+    // 4. DRAW FALLING ITEMS with Varied Orientations (horizontal, vertical, diagonal, tumble)
     for (const item of this.engine.items) {
       const imgObj = this.productImages[item.image % this.productImages.length];
       const wobble = Math.sin(item.wobblePhase) * 6;
       const rx = item.x + shakeDx + wobble;
       const ry = item.y + shakeDy;
+      const cx = rx + item.size / 2;
+      const cy = ry + item.size / 2;
 
       // Drop Shadow
       this.ctx.beginPath();
-      this.ctx.ellipse(rx + item.size / 2, ry + item.size + 4, item.size * 0.4, item.size * 0.15, 0, 0, Math.PI * 2);
-      this.ctx.fillStyle = 'rgba(10, 8, 29, 0.45)';
+      this.ctx.ellipse(cx, ry + item.size + 4, item.size * 0.42, item.size * 0.16, 0, 0, Math.PI * 2);
+      this.ctx.fillStyle = 'rgba(10, 8, 29, 0.42)';
       this.ctx.fill();
 
-      // Product Image
+      // Product Image with Rotation
       if (imgObj && imgObj.img) {
-        this.ctx.drawImage(imgObj.img, rx, ry, item.size, item.size);
+        this.ctx.save();
+        this.ctx.translate(cx, cy);
+        this.ctx.rotate(item.angle || 0);
+        this.ctx.drawImage(imgObj.img, -item.size / 2, -item.size / 2, item.size, item.size);
+        this.ctx.restore();
       }
     }
 
@@ -1609,6 +1727,7 @@ class WebArcadeApp {
   // ================= GAME OVER MODAL =================
   onGameOver() {
     this.running = false;
+    this.sound.stopBgm();
     this.sound.play('gameover');
 
     const rankInfo = this.engine.getRank();
@@ -1630,13 +1749,17 @@ class WebArcadeApp {
   // ================= VOUCHER MODAL & SHARE =================
   openVoucherModal() {
     this.paused = true;
+    this.sound.pauseBgm();
     this.modalVoucherCode.textContent = this.voucherCode;
     this.voucherModal.style.display = 'flex';
   }
 
   closeVoucherModal() {
     this.voucherModal.style.display = 'none';
-    if (this.running) this.paused = false;
+    if (this.running) {
+      this.paused = false;
+      this.sound.resumeBgm();
+    }
   }
 
   copyVoucherCode() {
