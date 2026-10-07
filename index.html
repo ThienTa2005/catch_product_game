@@ -1,0 +1,366 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>🎮 Hứng Sản Phẩm Arcade • AI Hand Tracking Web Game</title>
+  <meta name="description" content="Trò chơi hứng sản phẩm bằng AI bàn tay MediaPipe trực tiếp trên trình duyệt web. Phong cách Pop Arcade rực rỡ, âm thanh sống động, săn voucher và thi đấu điểm số cùng bạn bè!">
+  
+  <!-- Google Fonts: Outfit & Orbitron -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@600;800;900&family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  
+  <link rel="stylesheet" href="style.css">
+  <link rel="icon" type="image/png" href="assets/products/star_coin.png">
+</head>
+<body>
+  <div class="arcade-app-wrapper" id="app-wrapper">
+    <!-- 1. TOP HEADER BAR -->
+    <header class="arcade-header" id="main-header">
+      <div class="header-left">
+        <div class="arcade-badge">✨ POP ARCADE EDITION • WEB ONLINE</div>
+        <h1 class="arcade-title">🎮 HỨNG SẢN PHẨM</h1>
+      </div>
+
+      <div class="header-right">
+        <!-- Trophy High Score Card -->
+        <div class="stat-card trophy-card" id="trophy-card" title="Điểm kỷ lục cao nhất của bạn">
+          <span class="card-icon">🏆</span>
+          <div class="card-info">
+            <span class="card-label">KỶ LỤC</span>
+            <span class="card-val" id="high-score-val">0</span>
+          </div>
+        </div>
+
+        <!-- Live Score Card -->
+        <div class="stat-card score-card" id="live-score-card">
+          <span class="card-icon">⭐</span>
+          <div class="card-info">
+            <span class="card-label">ĐIỂM HIỆN TẠI</span>
+            <span class="card-val" id="current-score-val">0</span>
+          </div>
+        </div>
+
+        <!-- Action Header Buttons -->
+        <div class="header-buttons">
+          <button class="hdr-btn voucher-btn" id="header-voucher-btn" title="Xem tiến trình nhận Voucher">
+            🎁 Voucher (<span id="voucher-target-num">15</span>đ)
+          </button>
+          
+          <button class="hdr-btn leaderboard-btn" id="header-leaderboard-btn" title="Bảng xếp hạng so tài">
+            🏆 Bảng Xếp Hạng
+          </button>
+
+          <button class="hdr-btn sound-btn" id="header-sound-btn" title="Bật/Tắt âm thanh">
+            🔊 Âm thanh
+          </button>
+
+          <button class="hdr-btn fullscreen-btn" id="header-fs-btn" title="Toàn màn hình (F11)">
+            ⛶ F11
+          </button>
+        </div>
+      </div>
+    </header>
+
+    <!-- 2. MAIN GAME CONTAINER & CANVAS -->
+    <main class="arcade-main-stage">
+      <div class="canvas-container" id="canvas-container">
+        <!-- Game Canvas: Native 960x540 -->
+        <canvas id="game-canvas" width="960" height="540"></canvas>
+
+        <!-- Hidden Webcam Video Element used by MediaPipe & Canvas -->
+        <video id="webcam-video" playsinline muted autoplay style="display: none;"></video>
+
+        <!-- Start Overlay / Welcome Screen (when idle) -->
+        <div class="stage-overlay" id="welcome-overlay">
+          <div class="welcome-box">
+            <div class="welcome-logo-badge">🤖 AI GESTURE GAMING</div>
+            <h2 class="welcome-heading">HỨNG SẢN PHẨM BẰNG BÀN TAY</h2>
+            <p class="welcome-desc">Đưa bàn tay trước camera hoặc dùng chuột/ngón tay để hứng các phần quà đang rơi. Nhận điểm thưởng combo, lập kỷ lục và mở khóa Voucher đặc biệt!</p>
+
+            <div class="welcome-actions">
+              <button class="cta-start-btn" id="welcome-start-camera-btn">
+                <span class="btn-icon">📷</span>
+                <span class="btn-text">BẬT CAMERA & CHƠI BẰNG BÀN TAY</span>
+              </button>
+              <button class="cta-mouse-btn" id="welcome-start-mouse-btn">
+                <span class="btn-icon">🖱️</span>
+                <span class="btn-text">CHƠI BẰNG CHUỘT / CẢM ỨNG (KHÔNG CẦN CAMERA)</span>
+              </button>
+            </div>
+
+            <div class="camera-tip">
+              💡 <span>Trang web sử dụng AI MediaPipe chạy trực tiếp trên máy của bạn — hình ảnh camera hoàn toàn riêng tư và không gửi lên máy chủ!</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Camera Loading Spinner Overlay -->
+        <div class="stage-overlay camera-loading-overlay" id="loading-overlay" style="display: none;">
+          <div class="loader-spinner"></div>
+          <div class="loader-text" id="loader-status-text">Đang tải mô hình AI nhận diện bàn tay MediaPipe...</div>
+          <div class="loader-sub">Vui lòng chấp nhận quyền truy cập Camera nếu trình duyệt yêu cầu</div>
+        </div>
+
+        <!-- Mobile Touch Helper Indicator -->
+        <div class="touch-control-hint" id="touch-hint" style="display: none;">
+          👆 Chạm hoặc kéo ngón tay trên màn hình để di chuyển đĩa hứng!
+        </div>
+      </div>
+    </main>
+
+    <!-- 3. PRODUCT INVENTORY TRAY -->
+    <section class="inventory-tray" id="product-tray">
+      <div class="tray-info">
+        <span class="tray-title">📦 KHO SẢN PHẨM RƠI NGẪU NHIÊN:</span>
+        <span class="tray-count" id="product-count-label">(6 ảnh)</span>
+      </div>
+
+      <!-- Thumbnail Carousel / Container -->
+      <div class="thumbs-scroller" id="thumbs-list">
+        <!-- Rendered dynamically by JS -->
+      </div>
+
+      <!-- Tray Action Buttons -->
+      <div class="tray-actions">
+        <label class="tray-btn upload-btn" id="upload-custom-btn" title="Tải ảnh sản phẩm của riêng bạn lên">
+          📁 Tải ảnh sản phẩm
+          <input type="file" id="product-file-input" accept="image/*" multiple style="display: none;">
+        </label>
+        
+        <button class="tray-btn default-btn" id="reset-default-products-btn" title="Quay lại 6 sản phẩm mặc định">
+          ↺ Mẫu gốc
+        </button>
+
+        <label class="tray-chk-label" title="Tự động nhận diện và loại bỏ nền trắng/đơn sắc cho ảnh sản phẩm mới tải lên">
+          <input type="checkbox" id="auto-remove-bg-chk" checked>
+          <span>✂️ Tự xóa nền</span>
+        </label>
+      </div>
+    </section>
+
+    <!-- 4. CONTROLS BAR -->
+    <nav class="controls-bar" id="controls-bar">
+      <div class="controls-left">
+        <button class="ctrl-btn start-btn" id="main-start-btn">
+          ▶ BẮT ĐẦU / CHƠI LẠI
+        </button>
+
+        <button class="ctrl-btn pause-btn" id="main-pause-btn" disabled>
+          ⏸ Tạm dừng (Space)
+        </button>
+
+        <div class="control-group">
+          <label for="mode-select" class="ctrl-label">Chế độ:</label>
+          <select id="mode-select" class="ctrl-select">
+            <option value="camera">📷 Webcam / Bàn tay thật</option>
+            <option value="mouse">🖱️ Chuột / Cảm ứng</option>
+          </select>
+        </div>
+
+        <label class="ctrl-chk" title="Hiển thị khung và xương bàn tay AI nhận diện">
+          <input type="checkbox" id="show-shield-chk" checked>
+          <span>🛡️ Khiên bàn tay</span>
+        </label>
+      </div>
+
+      <div class="controls-right">
+        <button class="ctrl-btn settings-toggle-btn" id="settings-toggle-btn">
+          ⚙️ Cài đặt ▼
+        </button>
+      </div>
+    </nav>
+
+    <!-- 5. EXPANDABLE SETTINGS PANEL -->
+    <section class="settings-drawer" id="settings-drawer" style="display: none;">
+      <!-- Difficulty Presets -->
+      <div class="preset-row">
+        <span class="preset-label">Độ khó nhanh:</span>
+        <button class="preset-btn easy" id="preset-easy-btn">🍀 Dễ (130px/s, 1.5s)</button>
+        <button class="preset-btn normal active" id="preset-normal-btn">⚡ Tiêu chuẩn (180px/s, 1.2s)</button>
+        <button class="preset-btn hard" id="preset-hard-btn">🔥 Thử thách (260px/s, 0.8s)</button>
+      </div>
+
+      <!-- Detailed Inputs -->
+      <div class="inputs-grid">
+        <div class="input-item">
+          <label for="cfg-gain">Điểm bắt (+)</label>
+          <input type="number" id="cfg-gain" value="1" min="1" max="100">
+        </div>
+        <div class="input-item">
+          <label for="cfg-loss">Điểm trừ (-)</label>
+          <input type="number" id="cfg-loss" value="1" min="0" max="100">
+        </div>
+        <div class="input-item">
+          <label for="cfg-speed">Tốc độ rơi (px/s)</label>
+          <input type="number" id="cfg-speed" value="180" min="50" max="800">
+        </div>
+        <div class="input-item">
+          <label for="cfg-interval">Nhịp rơi (giây)</label>
+          <input type="number" id="cfg-interval" value="1.2" step="0.1" min="0.3" max="5.0">
+        </div>
+        <div class="input-item">
+          <label for="cfg-size">Cỡ sản phẩm (px)</label>
+          <input type="number" id="cfg-size" value="68" min="30" max="150">
+        </div>
+        <div class="input-item">
+          <label for="cfg-duration">Thời gian ván (giây)</label>
+          <input type="number" id="cfg-duration" value="60" min="0" max="300" title="0 = không giới hạn thời gian">
+        </div>
+        <div class="input-item">
+          <label for="cfg-voucher">Điểm Voucher</label>
+          <input type="number" id="cfg-voucher" value="15" min="5" max="100">
+        </div>
+      </div>
+    </section>
+
+    <!-- 6. BOTTOM STATUS / TICKER BAR -->
+    <footer class="arcade-status-bar" id="status-bar">
+      <div class="status-indicator-dot" id="status-dot"></div>
+      <div class="status-text" id="status-message">
+        Sẵn sàng! Bấm [▶ Bắt đầu] để bật camera và chơi game cùng bạn bè!
+      </div>
+    </footer>
+  </div>
+
+  <!-- ================= MODALS ================= -->
+
+  <!-- A. VOUCHER MODAL -->
+  <div class="modal-backdrop" id="voucher-modal" style="display: none;">
+    <div class="modal-card voucher-card">
+      <button class="modal-close-x" id="voucher-close-x">✕</button>
+
+      <div class="voucher-confetti-badge">🎉 CHÚC MỪNG BẠN! 🎉</div>
+      <h2 class="voucher-headline">MỞ KHÓA VOUCHER QUÀ TẶNG VIP</h2>
+      <p class="voucher-sub">Bạn đã đạt thành tích xuất sắc trong game hứng sản phẩm!</p>
+
+      <div class="voucher-ticket">
+        <div class="ticket-left">
+          <span class="ticket-tag">ARCADE PROMO</span>
+          <span class="ticket-discount">GIẢM 20%</span>
+        </div>
+        <div class="ticket-divider"></div>
+        <div class="ticket-right">
+          <div class="ticket-code-label">MÃ ƯU ĐÃI CỦA BẠN:</div>
+          <div class="ticket-code-box">
+            <span class="ticket-code" id="modal-voucher-code">CATCH15-VIP</span>
+            <button class="copy-code-btn" id="voucher-copy-btn">📋 Sao chép</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="voucher-share-prompt">
+        Chia sẻ lời chúc & mã voucher lên Facebook hoặc Zalo để kích hoạt quà tặng cùng bạn bè:
+      </div>
+
+      <div class="voucher-actions-row">
+        <button class="share-btn share-fb-btn" id="voucher-share-fb-btn">
+          <span>🌐</span> Chia sẻ Facebook
+        </button>
+        <button class="share-btn share-zalo-btn" id="voucher-share-zalo-btn">
+          <span>💬</span> Chia sẻ Zalo
+        </button>
+        <button class="share-btn share-copy-link-btn" id="voucher-share-link-btn">
+          <span>🔗</span> Sao chép Link Game
+        </button>
+      </div>
+
+      <button class="modal-continue-btn" id="voucher-continue-game-btn">
+        ▶ Tiếp tục chơi
+      </button>
+    </div>
+  </div>
+
+  <!-- B. GAME OVER / RESULT MODAL -->
+  <div class="modal-backdrop" id="gameover-modal" style="display: none;">
+    <div class="modal-card gameover-card">
+      <div class="gameover-header">
+        <div class="gameover-ribbon">🎮 HẾT THỜI GIAN! 🎮</div>
+        <h2 class="gameover-title">KẾT QUẢ VÁN ĐẤU</h2>
+      </div>
+
+      <!-- Rank Badge & Title -->
+      <div class="rank-display">
+        <div class="rank-circle" id="go-rank-circle">S</div>
+        <div class="rank-title" id="go-rank-title">Huyền Thoại Bắt Quà! 👑</div>
+      </div>
+
+      <!-- Stats Grid -->
+      <div class="go-stats-grid">
+        <div class="go-stat-box">
+          <span class="go-stat-lbl">⭐ ĐIỂM SỐ</span>
+          <span class="go-stat-val highlight" id="go-score-val">0</span>
+        </div>
+        <div class="go-stat-box">
+          <span class="go-stat-lbl">🔥 MAX COMBO</span>
+          <span class="go-stat-val" id="go-combo-val">0</span>
+        </div>
+        <div class="go-stat-box">
+          <span class="go-stat-lbl">🎯 TỶ LỆ TRÚNG</span>
+          <span class="go-stat-val" id="go-acc-val">100%</span>
+        </div>
+        <div class="go-stat-box">
+          <span class="go-stat-lbl">📦 SẢN PHẨM BẮT</span>
+          <span class="go-stat-val" id="go-caught-val">0/0</span>
+        </div>
+      </div>
+
+      <!-- Leaderboard Name Submission Form -->
+      <div class="go-submit-box">
+        <label for="go-player-name" class="go-name-lbl">Nhập tên bạn để ghi danh Bảng Xếp Hạng:</label>
+        <div class="go-input-group">
+          <input type="text" id="go-player-name" maxlength="15" placeholder="Tên / Biệt danh..." value="Người Chơi Pro">
+          <button class="go-save-score-btn" id="go-save-score-btn">💾 Lưu Điểm</button>
+        </div>
+        <span class="save-status-msg" id="go-save-feedback"></span>
+      </div>
+
+      <!-- Actions -->
+      <div class="go-actions">
+        <button class="go-replay-btn" id="go-replay-btn">🔄 CHƠI LẠI NGAY</button>
+        <button class="go-leaderboard-btn" id="go-view-lb-btn">🏆 XEM BẢNG XẾP HẠNG</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- C. LEADERBOARD MODAL -->
+  <div class="modal-backdrop" id="leaderboard-modal" style="display: none;">
+    <div class="modal-card leaderboard-card">
+      <button class="modal-close-x" id="lb-close-x">✕</button>
+
+      <div class="lb-header">
+        <span class="lb-icon">🏆</span>
+        <h2>BẢNG XẾP HẠNG CAO THỦ</h2>
+        <p>Top người chơi đạt điểm cao nhất trong game</p>
+      </div>
+
+      <div class="lb-table-wrapper">
+        <table class="lb-table">
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Người chơi</th>
+              <th>Điểm</th>
+              <th>Combo</th>
+              <th>Hạng</th>
+              <th>Thời gian</th>
+            </tr>
+          </thead>
+          <tbody id="lb-table-body">
+            <!-- Dynamically populated -->
+          </tbody>
+        </table>
+      </div>
+
+      <div class="lb-actions">
+        <button class="lb-share-btn" id="lb-share-link-btn">📤 Sao chép link rủ bạn bè vào đua top</button>
+        <button class="lb-close-btn" id="lb-close-btn">Đóng</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MediaPipe Tasks Vision CDN -->
+  <script type="module" src="app.js"></script>
+</body>
+</html>
