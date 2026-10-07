@@ -13,6 +13,8 @@
   
   <link rel="stylesheet" href="style.css">
   <link rel="icon" type="image/png" href="assets/products/star_coin.png">
+  <!-- Brand Configuration Script -->
+  <script src="brand_config.js"></script>
 </head>
 <body>
   <div class="arcade-app-wrapper" id="app-wrapper">
@@ -54,6 +56,10 @@
 
           <button class="hdr-btn sound-btn" id="header-sound-btn" title="Bật/Tắt âm thanh">
             🔊 Âm thanh
+          </button>
+
+          <button class="hdr-btn brand-btn" id="header-brand-btn" title="Tùy biến nhãn hàng, màu sắc & voucher trong 2 phút">
+            🎨 Đổi Nhãn Hàng
           </button>
 
           <button class="hdr-btn fullscreen-btn" id="header-fs-btn" title="Toàn màn hình (F11)">
@@ -356,6 +362,82 @@
       <div class="lb-actions">
         <button class="lb-share-btn" id="lb-share-link-btn">📤 Sao chép link rủ bạn bè vào đua top</button>
         <button class="lb-close-btn" id="lb-close-btn">Đóng</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- D. BRAND CUSTOMIZER / STUDIO MODAL (2-MINUTE REBRANDING) -->
+  <div class="modal-backdrop" id="brand-modal" style="display: none;">
+    <div class="modal-card brand-modal-card">
+      <button class="modal-close-x" id="brand-close-x">✕</button>
+
+      <div class="brand-modal-header">
+        <div class="brand-badge-tag">⚡ 2-MINUTE REBRANDING STUDIO</div>
+        <h2 class="brand-title">TÙY BIẾN NHÃN HÀNG SẢN PHẨM</h2>
+        <p class="brand-sub">Đổi thương hiệu, màu sắc chủ đạo, vật rơi và voucher trong 30 giây!</p>
+      </div>
+
+      <!-- Quick Brand Presets (1-Click) -->
+      <div class="brand-section">
+        <div class="brand-section-title">1. Chọn mẫu thương hiệu có sẵn (1 Click):</div>
+        <div class="brand-preset-grid">
+          <button type="button" class="brand-preset-chip" data-preset="highlands">☕ Highlands Coffee</button>
+          <button type="button" class="brand-preset-chip" data-preset="pepsi">🥤 Pepsi</button>
+          <button type="button" class="brand-preset-chip" data-preset="coca">🔴 Coca-Cola</button>
+          <button type="button" class="brand-preset-chip" data-preset="starbucks">🟢 Starbucks</button>
+          <button type="button" class="brand-preset-chip" data-preset="shopee">🟠 Shopee</button>
+          <button type="button" class="brand-preset-chip" data-preset="momo">🟣 MoMo</button>
+        </div>
+      </div>
+
+      <!-- Campaign Fields -->
+      <div class="brand-section">
+        <div class="brand-section-title">2. Tùy chỉnh thông tin chiến dịch:</div>
+        <div class="brand-fields-grid">
+          <div class="brand-field">
+            <label for="bm-brand-name">Tên Thương Hiệu:</label>
+            <input type="text" id="bm-brand-name" placeholder="VD: Highlands Coffee" value="Highlands Coffee">
+          </div>
+          <div class="brand-field">
+            <label for="bm-game-title">Tiêu Đề Game:</label>
+            <input type="text" id="bm-game-title" placeholder="VD: HỨNG CÀ PHÊ HIGHLANDS" value="HỨNG SẢN PHẨM">
+          </div>
+          <div class="brand-field">
+            <label for="bm-primary-color">Màu Chủ Đạo:</label>
+            <div class="color-picker-wrap">
+              <input type="color" id="bm-primary-color" value="#4F46E5">
+              <span class="color-hex-val" id="bm-color-hex">#4F46E5</span>
+            </div>
+          </div>
+          <div class="brand-field">
+            <label for="bm-voucher-code">Mã Voucher:</label>
+            <input type="text" id="bm-voucher-code" placeholder="VD: HIGHLANDS-VIP" value="CATCH15-VIP">
+          </div>
+          <div class="brand-field">
+            <label for="bm-voucher-discount">Mức Ưu Đãi:</label>
+            <input type="text" id="bm-voucher-discount" placeholder="VD: GIẢM 30%" value="GIẢM 20%">
+          </div>
+        </div>
+      </div>
+
+      <!-- Product Upload inside Brand Modal -->
+      <div class="brand-section">
+        <div class="brand-section-title">3. Tải ảnh sản phẩm nhãn hàng (Tự xóa nền):</div>
+        <div class="brand-upload-row">
+          <label class="brand-upload-btn">
+            📁 Tải ảnh sản phẩm
+            <input type="file" id="bm-file-input" accept="image/*" multiple style="display: none;">
+          </label>
+          <span class="brand-upload-hint">Tự động cắt sát & xóa nền trắng sang trong suốt</span>
+        </div>
+      </div>
+
+      <!-- Actions -->
+      <div class="brand-modal-actions">
+        <button type="button" class="brand-apply-btn" id="bm-apply-btn">💾 ÁP DỤNG NGAY (Tức thì)</button>
+        <button type="button" class="brand-share-url-btn" id="bm-copy-link-btn" title="Tạo link chứa cấu hình này gửi cho người khác mở lên là áp dụng ngay!">
+          🔗 Tạo Link Chứa Nhãn Hàng Này
+        </button>
       </div>
     </div>
   </div>

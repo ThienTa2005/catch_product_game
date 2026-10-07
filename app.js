@@ -370,6 +370,7 @@ class WebArcadeApp {
     this.idleTime = 0;
 
     this.initDOM();
+    this.initBrand();
     this.loadDefaultProducts();
     this.updateHeaderStats();
     this.bindEvents();
@@ -387,6 +388,23 @@ class WebArcadeApp {
     this.headerSoundBtn = document.getElementById('header-sound-btn');
     this.headerFsBtn = document.getElementById('header-fs-btn');
     this.headerLbBtn = document.getElementById('header-leaderboard-btn');
+    this.headerBrandBtn = document.getElementById('header-brand-btn');
+
+    this.arcadeTitleEl = document.querySelector('.arcade-title');
+    this.arcadeBadgeEl = document.querySelector('.arcade-badge');
+
+    // Brand modal elements
+    this.brandModal = document.getElementById('brand-modal');
+    this.brandCloseX = document.getElementById('brand-close-x');
+    this.bmBrandName = document.getElementById('bm-brand-name');
+    this.bmGameTitle = document.getElementById('bm-game-title');
+    this.bmPrimaryColor = document.getElementById('bm-primary-color');
+    this.bmColorHex = document.getElementById('bm-color-hex');
+    this.bmVoucherCode = document.getElementById('bm-voucher-code');
+    this.bmVoucherDiscount = document.getElementById('bm-voucher-discount');
+    this.bmFileInput = document.getElementById('bm-file-input');
+    this.bmApplyBtn = document.getElementById('bm-apply-btn');
+    this.bmCopyLinkBtn = document.getElementById('bm-copy-link-btn');
 
     this.welcomeOverlay = document.getElementById('welcome-overlay');
     this.loadingOverlay = document.getElementById('loading-overlay');
@@ -567,6 +585,173 @@ class WebArcadeApp {
     this.lbCloseX.addEventListener('click', () => { this.leaderboardModal.style.display = 'none'; });
     this.lbCloseBtn.addEventListener('click', () => { this.leaderboardModal.style.display = 'none'; });
     this.lbShareLinkBtn.addEventListener('click', () => this.copyGameLink());
+
+    // Brand Customizer Modal bindings
+    if (this.headerBrandBtn) {
+      this.headerBrandBtn.addEventListener('click', () => {
+        this.brandModal.style.display = 'flex';
+      });
+    }
+
+    if (this.brandCloseX) {
+      this.brandCloseX.addEventListener('click', () => {
+        this.brandModal.style.display = 'none';
+      });
+    }
+
+    // Brand Preset chips (Highlands, Pepsi, Coca, Starbucks, Shopee, MoMo)
+    document.querySelectorAll('.brand-preset-chip').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const pKey = btn.getAttribute('data-preset');
+        if (window.BRAND_PRESETS && window.BRAND_PRESETS[pKey]) {
+          const p = window.BRAND_PRESETS[pKey];
+          if (this.bmBrandName) this.bmBrandName.value = p.name;
+          if (this.bmGameTitle) this.bmGameTitle.value = p.title;
+          if (this.bmPrimaryColor) this.bmPrimaryColor.value = p.primaryColor;
+          if (this.bmColorHex) this.bmColorHex.textContent = p.primaryColor;
+          if (this.bmVoucherCode) this.bmVoucherCode.value = p.voucherCode;
+          if (this.bmVoucherDiscount) this.bmVoucherDiscount.value = p.voucherDiscount;
+        }
+      });
+    });
+
+    if (this.bmPrimaryColor) {
+      this.bmPrimaryColor.addEventListener('input', (e) => {
+        if (this.bmColorHex) this.bmColorHex.textContent = e.target.value.toUpperCase();
+      });
+    }
+
+    if (this.bmFileInput) {
+      this.bmFileInput.addEventListener('change', (e) => {
+        this.handleCustomImagesUpload(e);
+      });
+    }
+
+    if (this.bmApplyBtn) {
+      this.bmApplyBtn.addEventListener('click', () => {
+        const brandName = (this.bmBrandName.value || 'Nhãn Hàng').trim();
+        const gameTitle = (this.bmGameTitle.value || 'HỨNG SẢN PHẨM').trim();
+        const primaryCol = this.bmPrimaryColor.value || '#4F46E5';
+        const vCode = (this.bmVoucherCode.value || 'PROMO-VIP').trim();
+        const vDiscount = (this.bmVoucherDiscount.value || 'GIẢM 20%').trim();
+
+        const newCfg = {
+          name: brandName,
+          title: gameTitle,
+          badge: `✨ ${brandName.toUpperCase()} PROMO`,
+          primaryColor: primaryCol,
+          accentColor: '#F59E0B',
+          voucherCode: vCode,
+          voucherDiscount: vDiscount,
+          voucherTarget: this.voucherTarget,
+          voucherDesc: `Săn được voucher quà tặng đặc biệt từ ${brandName}!`
+        };
+
+        localStorage.setItem('arcade_brand_config', JSON.stringify(newCfg));
+        this.applyBrandConfig(newCfg);
+        this.brandModal.style.display = 'none';
+        this.setStatus(`✓ Đã áp dụng chiến dịch: ${newCfg.name}! Bắt đầu chơi ngay.`);
+      });
+    }
+
+    if (this.bmCopyLinkBtn) {
+      this.bmCopyLinkBtn.addEventListener('click', () => {
+        const brand = encodeURIComponent((this.bmBrandName.value || 'Nhãn Hàng').trim());
+        const title = encodeURIComponent((this.bmGameTitle.value || 'HỨNG SẢN PHẨM').trim());
+        const color = encodeURIComponent(this.bmPrimaryColor.value);
+        const voucher = encodeURIComponent((this.bmVoucherCode.value || 'PROMO-VIP').trim());
+        const discount = encodeURIComponent((this.bmVoucherDiscount.value || 'GIẢM 20%').trim());
+
+        const shareUrl = `${window.location.origin}${window.location.pathname}?brand=${brand}&title=${title}&color=${color}&voucher=${voucher}&discount=${discount}`;
+        navigator.clipboard.writeText(shareUrl).then(() => {
+          alert(`✓ Đã sao chép đường link chứa sẵn nhãn hàng ${decodeURIComponent(brand)}!\nBạn chỉ cần gửi link này cho mọi người, khi họ mở web lên thì toàn bộ giao diện, màu sắc và voucher sẽ tự đổi sang nhãn hàng của bạn ngay lập tức!`);
+        });
+      });
+    }
+  }
+
+  // ================= BRAND INITIALIZATION & APPLY =================
+  initBrand() {
+    const params = new URLSearchParams(window.location.search);
+    let cfg = null;
+
+    // 1. From URL Preset query ?preset=highlands
+    const presetParam = params.get('preset');
+    if (presetParam && window.BRAND_PRESETS && window.BRAND_PRESETS[presetParam]) {
+      cfg = { ...window.BRAND_PRESETS[presetParam] };
+    } else if (params.get('brand')) {
+      // 2. From URL custom query params
+      const bName = params.get('brand');
+      cfg = {
+        name: bName,
+        title: params.get('title') || `HỨNG SẢN PHẨM ${bName.toUpperCase()}`,
+        badge: `✨ ${bName.toUpperCase()} PROMO`,
+        primaryColor: params.get('color') || '#4F46E5',
+        accentColor: params.get('accent') || '#F59E0B',
+        voucherCode: params.get('voucher') || `${bName.toUpperCase()}-VIP`,
+        voucherDiscount: params.get('discount') || 'GIẢM 25%',
+        voucherTarget: parseInt(params.get('target') || '15', 10),
+        voucherDesc: `Săn được voucher quà tặng đặc biệt từ ${bName}!`
+      };
+    } else {
+      // 3. From LocalStorage
+      try {
+        const stored = localStorage.getItem('arcade_brand_config');
+        if (stored) cfg = JSON.parse(stored);
+      } catch (e) {}
+    }
+
+    // 4. Default from window.ACTIVE_BRAND
+    if (!cfg) {
+      cfg = window.ACTIVE_BRAND || {
+        name: "Arcade Pop",
+        title: "HỨNG SẢN PHẨM",
+        badge: "✨ POP ARCADE EDITION • WEB ONLINE",
+        primaryColor: "#4F46E5",
+        accentColor: "#F59E0B",
+        voucherCode: "CATCH15-VIP",
+        voucherDiscount: "GIẢM 20%",
+        voucherTarget: 15,
+        voucherDesc: "Mở khóa voucher mua sắm giảm giá VIP!"
+      };
+    }
+
+    this.applyBrandConfig(cfg);
+  }
+
+  applyBrandConfig(cfg) {
+    this.currentBrand = cfg;
+
+    if (this.arcadeTitleEl) this.arcadeTitleEl.textContent = `🎮 ${cfg.title}`;
+    if (this.arcadeBadgeEl) this.arcadeBadgeEl.textContent = cfg.badge || `✨ ${cfg.name.toUpperCase()} PROMO`;
+    document.title = `🎮 ${cfg.title} • AI Hand Tracking Game`;
+
+    if (cfg.primaryColor) {
+      document.documentElement.style.setProperty('--brand-primary', cfg.primaryColor);
+      document.documentElement.style.setProperty('--accent-purple', cfg.primaryColor);
+    }
+    if (cfg.accentColor) {
+      document.documentElement.style.setProperty('--brand-accent', cfg.accentColor);
+      document.documentElement.style.setProperty('--accent-gold', cfg.accentColor);
+    }
+
+    this.voucherCode = cfg.voucherCode || 'CATCH15-VIP';
+    this.voucherTarget = cfg.voucherTarget || 15;
+    if (this.modalVoucherCode) this.modalVoucherCode.textContent = this.voucherCode;
+    if (this.voucherTargetNum) this.voucherTargetNum.textContent = this.voucherTarget;
+
+    const discountEl = document.querySelector('.ticket-discount');
+    if (discountEl && cfg.voucherDiscount) discountEl.textContent = cfg.voucherDiscount;
+
+    const voucherSubEl = document.querySelector('.voucher-sub');
+    if (voucherSubEl && cfg.voucherDesc) voucherSubEl.textContent = cfg.voucherDesc;
+
+    if (this.bmBrandName) this.bmBrandName.value = cfg.name;
+    if (this.bmGameTitle) this.bmGameTitle.value = cfg.title;
+    if (this.bmPrimaryColor) this.bmPrimaryColor.value = cfg.primaryColor;
+    if (this.bmColorHex) this.bmColorHex.textContent = cfg.primaryColor;
+    if (this.bmVoucherCode) this.bmVoucherCode.value = this.voucherCode;
+    if (this.bmVoucherDiscount) this.bmVoucherDiscount.value = cfg.voucherDiscount || 'GIẢM 20%';
   }
 
   // Load 6 Default Images

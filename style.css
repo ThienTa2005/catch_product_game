@@ -19,6 +19,9 @@
   --accent-pink: #EC4899;
   --accent-rose: #F43F5E;
   
+  --brand-primary: #4F46E5;
+  --brand-accent: #F59E0B;
+  
   --text-main: #F8FAFC;
   --text-muted: #94A3B8;
   --text-sub: #CBD5E1;
@@ -239,6 +242,16 @@ html, body {
 .sound-btn.muted {
   background: #334155;
   color: #94A3B8;
+}
+
+.brand-btn {
+  background: linear-gradient(135deg, #EC4899, #BE185D);
+  color: #FFFFFF;
+  border: 1px solid rgba(244, 114, 182, 0.4);
+  box-shadow: 0 4px 12px rgba(236, 72, 153, 0.35);
+}
+.brand-btn:hover {
+  box-shadow: 0 6px 16px rgba(236, 72, 153, 0.6);
 }
 
 .fullscreen-btn {
@@ -1368,6 +1381,209 @@ html, body {
 @keyframes slideDown {
   from { opacity: 0; transform: translateY(-8px); }
   to { opacity: 1; transform: translateY(0); }
+}
+
+/* ================= BRAND STUDIO CUSTOMIZER MODAL ================= */
+.brand-modal-card {
+  max-width: 600px;
+  border-color: var(--brand-accent, #F59E0B);
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.8), 0 0 40px rgba(245, 158, 11, 0.25);
+  text-align: left;
+  max-height: 90vh;
+  overflow-y: auto;
+}
+
+.brand-modal-header {
+  text-align: center;
+  width: 100%;
+}
+
+.brand-badge-tag {
+  font-size: 0.72rem;
+  font-weight: 800;
+  color: #F472B6;
+  background: rgba(236, 72, 153, 0.15);
+  border: 1px solid rgba(236, 72, 153, 0.4);
+  padding: 3px 12px;
+  border-radius: 20px;
+  display: inline-block;
+  margin-bottom: 4px;
+}
+
+.brand-title {
+  font-family: var(--font-display);
+  font-size: 1.35rem;
+  font-weight: 900;
+  color: #FFFFFF;
+}
+
+.brand-sub {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+
+.brand-section {
+  width: 100%;
+  background: #0E0A24;
+  border: 1px solid #312E81;
+  border-radius: var(--radius-sm);
+  padding: 10px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.brand-section-title {
+  font-size: 0.8rem;
+  font-weight: 800;
+  color: var(--accent-cyan);
+}
+
+.brand-preset-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 6px;
+}
+
+.brand-preset-chip {
+  font-family: var(--font-main);
+  font-size: 0.8rem;
+  font-weight: 700;
+  padding: 7px 10px;
+  border-radius: var(--radius-sm);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: #1E1B4B;
+  color: #F8FAFC;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-align: center;
+}
+
+.brand-preset-chip:hover {
+  border-color: var(--accent-gold);
+  background: #2E1A5B;
+  transform: translateY(-2px);
+}
+
+.brand-fields-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.brand-field {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.brand-field label {
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: #A5B4FC;
+}
+
+.brand-field input[type="text"] {
+  font-family: var(--font-main);
+  font-size: 0.85rem;
+  background: #161238;
+  border: 1px solid #4338CA;
+  border-radius: var(--radius-sm);
+  color: #FFFFFF;
+  padding: 6px 10px;
+  outline: none;
+}
+.brand-field input[type="text"]:focus {
+  border-color: var(--accent-cyan);
+}
+
+.color-picker-wrap {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.color-picker-wrap input[type="color"] {
+  border: none;
+  width: 38px;
+  height: 32px;
+  border-radius: var(--radius-sm);
+  background: none;
+  cursor: pointer;
+}
+
+.color-hex-val {
+  font-family: monospace;
+  font-size: 0.88rem;
+  font-weight: 700;
+  color: #F8FAFC;
+}
+
+.brand-upload-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.brand-upload-btn {
+  font-family: var(--font-main);
+  font-size: 0.82rem;
+  font-weight: 700;
+  background: #FBBF24;
+  color: #0F0C24;
+  padding: 7px 14px;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+.brand-upload-btn:hover {
+  background: #F59E0B;
+}
+
+.brand-upload-hint {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+
+.brand-modal-actions {
+  display: flex;
+  gap: 10px;
+  width: 100%;
+}
+
+.brand-apply-btn {
+  flex: 1.4;
+  font-family: var(--font-main);
+  font-size: 0.95rem;
+  font-weight: 800;
+  background: linear-gradient(135deg, #10B981, #059669);
+  color: #FFFFFF;
+  border: none;
+  padding: 11px;
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  box-shadow: 0 4px 14px rgba(16, 185, 129, 0.4);
+}
+.brand-apply-btn:hover {
+  filter: brightness(1.15);
+  transform: translateY(-2px);
+}
+
+.brand-share-url-btn {
+  flex: 1.1;
+  font-family: var(--font-main);
+  font-size: 0.85rem;
+  font-weight: 700;
+  background: #334155;
+  color: #E2E8F0;
+  border: none;
+  padding: 11px;
+  border-radius: var(--radius-md);
+  cursor: pointer;
+}
+.brand-share-url-btn:hover {
+  background: #475569;
 }
 
 /* ================= RESPONSIVE ADJUSTMENTS ================= */
